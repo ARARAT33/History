@@ -3,4 +3,131 @@ const data={"Հայաստան":{continent:"Ասիա",peoples:[{name:"Հայեր"
 const aliases={"United States of America":"ԱՄՆ","United States":"ԱՄՆ","Russia":"Ռուսաստան","Türkiye":"Թուրքիա","Turkey":"Թուրքիա","Armenia":"Հայաստան","Azerbaijan":"Ադրբեջան","Georgia":"Վրաստան","Iran":"Իրան","Iraq":"Իրաք","China":"Չինաստան","India":"Հնդկաստան","Japan":"Ճապոնիա","Germany":"Գերմանիա","France":"Ֆրանսիա","Italy":"Իտալիա","Spain":"Իսպանիա","United Kingdom":"Միացյալ Թագավորություն","Canada":"Կանադա","Mexico":"Մեքսիկա","Brazil":"Բրազիլիա","Australia":"Ավստրալիա"};
 const list=document.querySelector("#country-list"); countries.forEach(n=>{const b=document.createElement("button");b.className="country-item";b.textContent=n;b.onclick=()=>selectCountry(n);list.appendChild(b)});
 function selectCountry(n){document.querySelector("#map-status").textContent=n;document.querySelectorAll(".country-item").forEach(b=>b.classList.toggle("active",b.textContent===n));const d=data[n];document.querySelector("#country-panel").innerHTML=`<div class="country-title"><span class="flag-dot"></span><div><small>ՊԵՏՈՒԹՅՈՒՆ</small><h3>${n}</h3></div></div><div class="detail-grid"><div><small>Մայրցամաք</small><strong>${d?.continent||"Տվյալը կավելացվի"}</strong></div><div><small>Տարածքային բաժանում</small><strong>Կցուցադրվի ըստ աղբյուրների</strong></div></div><div class="detail-section"><h4>Ազգեր և ժողովուրդներ</h4>${d?.peoples?.map(p=>`<article class="people-card"><h5>${p.name}</h5><p><b>Տարածք․</b> ${p.areas.join(", ")}</p><p><b>Լեզու․</b> ${p.language}</p><p><b>Կրոն․</b> ${p.religion}</p></article>`).join("")||'<div class="placeholder">Այս պետության ազգաբանական տվյալների բաժինը պատրաստ է լրացման։</div>'}</div><div class="detail-section"><h4>Նյութեր</h4><div class="chips"><span>Նկարներ</span><span>Տեսանյութեր</span><span>Փաստաթղթեր</span></div></div>`};
-(async()=>{const root=d3.select("#world-map"),w=960,h=520,svg=root.append("svg").attr("viewBox",`0 0 ${w} ${h}`),projection=d3.geoNaturalEarth1().fitSize([w,h],{type:"Sphere"}),path=d3.geoPath(projection);try{const world=await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"),features=topojson.feature(world,world.objects.countries).features;svg.append("path").datum({type:"Sphere"}).attr("class","ocean").attr("d",path);svg.append("g").selectAll("path").data(features).join("path").attr("class","country-shape").attr("d",path).on("click",(_,d)=>selectCountry(aliases[d.properties?.name]||d.properties?.name||"Ընտրված պետություն"));svg.append("path").datum({type:"Sphere"}).attr("class","map-outline").attr("d",path)}catch(e){root.innerHTML='<div class="map-error">Քարտեզը հիմա չբեռնվեց։ Պետությունների ցանկը շարունակում է աշխատել։</div>'}})();
+
+// Real interactive map: MapLibre GL JS + OpenStreetMap raster tiles.
+// Country boundaries come from Natural Earth GeoJSON (public-domain dataset).
+const map = new maplibregl.Map({
+  container: "world-map",
+  style: {
+    version: 8,
+    sources: {
+      osm: {
+        type: "raster",
+        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© OpenStreetMap contributors"
+      },
+      countries: {
+        type: "geojson",
+        data: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
+      }
+    },
+    layers: [
+      { id: "osm", type: "raster", source: "osm" },
+      {
+        id: "country-fill",
+        type: "fill",
+        source: "countries",
+        paint: { "fill-color": "#9b3d2e", "fill-opacity": 0.08 }
+      },
+      {
+        id: "country-outline",
+        type: "line",
+        source: "countries",
+        paint: { "line-color": "#777", "line-width": 0.7 }
+      },
+      {
+        id: "country-selected",
+        type: "fill",
+        source: "countries",
+        paint: { "fill-color": "#9b3d2e", "fill-opacity": 0.48 },
+        filter: ["==", "ADMIN", ""]
+      }
+    ]
+  },
+  center: [20, 25],
+  zoom: 1.25,
+  minZoom: 1,
+  maxZoom: 18,
+  renderWorldCopies: false
+});
+
+map.addControl(new maplibregl.NavigationControl({showCompass: true}), "top-right");
+map.addControl(new maplibregl.FullscreenControl(), "top-right");
+map.on("load", () => {
+  map.resize();
+});
+
+const geoAliases = {
+  "United States of America": "ԱՄՆ",
+  "Russia": "Ռուսաստան",
+  "Türkiye": "Թուրքիա",
+  "Turkey": "Թուրքիա",
+  "Armenia": "Հայաստան",
+  "Azerbaijan": "Ադրբեջան",
+  "Georgia": "Վրաստան",
+  "Iran": "Իրան",
+  "Iraq": "Իրաք",
+  "China": "Չինաստան",
+  "India": "Հնդկաստան",
+  "Japan": "Ճապոնիա",
+  "Germany": "Գերմանիա",
+  "France": "Ֆրանսիա",
+  "Italy": "Իտալիա",
+  "Spain": "Իսպանիա",
+  "United Kingdom": "Միացյալ Թագավորություն",
+  "Canada": "Կանադա",
+  "Mexico": "Մեքսիկա",
+  "Brazil": "Բրազիլիա",
+  "Australia": "Ավստրալիա"
+};
+
+function getCountryName(feature) {
+  const p = feature.properties || {};
+  return geoAliases[p.ADMIN] || geoAliases[p.NAME] || p.ADMIN || p.NAME;
+}
+
+function highlightCountry(mapName) {
+  map.setFilter("country-selected", ["==", "ADMIN", mapName]);
+}
+
+map.on("click", "country-fill", (event) => {
+  const feature = event.features && event.features[0];
+  if (!feature) return;
+  const name = getCountryName(feature);
+  selectCountry(name);
+  highlightCountry(feature.properties.ADMIN || feature.properties.NAME || "");
+  map.flyTo({
+    center: event.lngLat,
+    zoom: Math.max(map.getZoom(), 4),
+    speed: 1.1,
+    curve: 1.25
+  });
+});
+
+map.on("mouseenter", "country-fill", () => {
+  map.getCanvas().style.cursor = "pointer";
+});
+map.on("mouseleave", "country-fill", () => {
+  map.getCanvas().style.cursor = "";
+});
+
+const oldSelectCountry = selectCountry;
+selectCountry = function(n) {
+  oldSelectCountry(n);
+  // Highlight the matching English Natural Earth name when the country
+  // was selected from the list rather than directly on the map.
+  const reverse = Object.entries(geoAliases).find(([, hy]) => hy === n);
+  if (reverse) {
+    highlightCountry(reverse[0]);
+    const features = map.querySourceFeatures("countries");
+    const feature = features.find(f => (f.properties?.ADMIN || f.properties?.NAME) === reverse[0]);
+    if (feature) {
+      const center = feature.geometry?.type === "Polygon"
+        ? feature.geometry.coordinates[0][0]
+        : feature.geometry?.coordinates?.[0]?.[0]?.[0];
+      if (Array.isArray(center)) map.flyTo({center, zoom: Math.max(map.getZoom(), 4), speed: 1.1});
+    }
+  }
+};
