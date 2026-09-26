@@ -1,9 +1,9 @@
 {
   "algorithm": "SHA-256",
-  "original_commit": "24c7627f1005672566e725501a97a167f5f40239",
+  "original_commit": "22849f6588fb9e94c07cf0cbd658c37eabf7e67c",
   "generated_at": "2026-09-26T23:30:00+04:00",
   "files": {
-    "index.html": "bd0b668a75bada2f4c88a57aabf358bfa047990da21284d887d6b34a40c4d1cb",
+    "index.html": "f48540231a8751989325bd67ab8781beda8d712b1162abb91c1f8b0d416fb315",
     "countries.html": "7fae2d2928c14a03833cc8dcb36367517d1be049fabe7ffcd5ed369b61965c90",
     "peoples.html": "5ba1dd2284caa758117a0132666754524952eb5f41cc3ea381559af28af071fa",
     "materials.html": "2240916fe8a806297dd621d1564dea40fe6f4c16b140e924bce966ae10bbda7a",
