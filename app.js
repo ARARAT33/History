@@ -360,7 +360,7 @@ async function commonsMapGeoJSON(value){
 }
 function sourceMarkup(place){
  const items=place.sources.slice(0,4).map(s=>{
-   const isUrl=/^https?:\\/\\//i.test(s);
+   const isUrl=String(s).startsWith("http://")||String(s).startsWith("https://");
    return isUrl?'<a target="_blank" rel="noopener" href="'+esc(s)+'">աղբյուր ↗</a>':'<span>'+esc(s)+'</span>';
  }).join("");
  return items||'<span>Wikidata statement</span>';
