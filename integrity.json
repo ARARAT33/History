@@ -3,17 +3,17 @@
   "original_commit": "a97699e0d1dd8e0ba2960ba89255a7d562568b10",
   "generated_at": "2026-09-26T23:30:00+04:00",
   "files": {
-    "index.html": "f48540231a8751989325bd67ab8781beda8d712b1162abb91c1f8b0d416fb315",
-    "countries.html": "7fae2d2928c14a03833cc8dcb36367517d1be049fabe7ffcd5ed369b61965c90",
-    "peoples.html": "5ba1dd2284caa758117a0132666754524952eb5f41cc3ea381559af28af071fa",
-    "materials.html": "2240916fe8a806297dd621d1564dea40fe6f4c16b140e924bce966ae10bbda7a",
-    "images.html": "44bb6cb295497ed8e92c414905270f5da959ca4dcaa0b8eab0ba8f4af03fd16d",
-    "videos.html": "ae5502e95a73ad6c860eb78e20b6d6cf15c421040447bcf344e3fac3b19e51e5",
-    "documents.html": "25fea08c3fa8887c94b4bc5f4b753160e97ccc24c1bf298642a85f0ea48d5400",
-    "history.html": "4aaca04b635bec874f74ba8e0ac62551405c51589c46d5545cb493ba535509b3",
-    "about.html": "4a34e091c0866974fee24b25135a0bc5cfbe22c27eb6fba660f5865590dc9da1",
-    "app.js": "9505dcae1559d181850dda45773012db90aac5ceff0f42bbe33b44cdb8bb1461",
-    "style.css": "fb6a59a093fe2825edc6c153b27f1431b3173b6d3caa3f88e8d376b72601eb2d",
-    "world.geojson": "20428f2c04c64e9a70652069293a80997f49fe2ee8587bbd2db310824a71b4b0"
+    "index.html": "9c6697df7d9419164449ac7d72f3544ee52fdbbbd2c3a15530dccc51cd934d06",
+    "countries.html": "cc62d4faca5a4681d132b8f02d9237265dc5c427aa7e815cc9ac7993ac69bb05",
+    "peoples.html": "515d3e91ce57537112ec871e1469abf141c149ebdc5d347019c2953d1a8fa3e9",
+    "materials.html": "5aec569f4aefcd89b1e0e0403d873f411a8bdf1f76b641abd3773cf6c4164095",
+    "images.html": "4a5886b4579c88e876ca39674dab193e08efa6c329c295cf6959705e44683b48",
+    "videos.html": "14234b200d02bd49496a8cef29e3c27ad014b0022dea137493e7377800472ce7",
+    "documents.html": "fbfcf2fe315c7ecf767e5cfbc275927fded03bf626255c669f22aa8691316e4b",
+    "history.html": "c5fa3e09dd97effb8377e85a76c591675f848da23f2356ffb518dfec29e11965",
+    "about.html": "1483a96a02c285f7ca8ef20e87e47f66ce04c7bc597049fd61da1fa50b92727b",
+    "app.js": "08e161e5694cf9893dc533cc646bdec75004b005c05324fe1a830a320f47ace8",
+    "style.css": "3d36fc6cb0ee15cfdbce119b069868de6d5c1ada3fb947cc8bd7ea1f829a1d37",
+    "world.geojson": "cdb11735e4f8e4e11d367d397faac78e609e68b513f647563cdc73757928da0d0"
   }
 }
