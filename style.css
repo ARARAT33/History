@@ -28,3 +28,12 @@
 .map-toolbar{background:rgba(251,250,247,.94);backdrop-filter:blur(8px)}
 .map-toolbar strong:before{content:"●";font-size:8px;margin-right:8px;color:#9b3d2e}
 @media(max-width:600px){#world-map{height:400px;min-height:400px}}
+
+/* Interactive OpenStreetMap / Leaflet */
+.states-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:18px;align-items:stretch}
+.map-card{min-width:0;border:1px solid #d9dde0;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 12px 35px rgba(0,0,0,.08)}
+.map-toolbar{min-height:52px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid #e1e5e7}.map-toolbar strong{margin-right:auto}
+.map-controls{display:flex;gap:5px}.map-controls button{border:1px solid #ccd3d7;background:#fff;border-radius:8px;padding:7px 11px;cursor:pointer;font:inherit}.map-controls button:hover{background:#eef3f5}
+#world-map{height:600px;min-height:600px;background:#dceaf1}#world-map .leaflet-container{font:inherit;background:#dceaf1}#world-map .leaflet-tooltip{font-weight:700;border:0;box-shadow:0 5px 18px rgba(0,0,0,.16)}#world-map .leaflet-control-attribution{font-size:9px}
+.country-panel{order:2;position:sticky;top:18px;max-height:600px;overflow:auto}
+@media(max-width:900px){.states-layout{grid-template-columns:1fr}.country-panel{order:2;position:static;max-height:none}#world-map{height:480px;min-height:480px}}@media(max-width:600px){#world-map{height:390px;min-height:390px}.map-controls{width:100%}.map-controls button{flex:1}}
