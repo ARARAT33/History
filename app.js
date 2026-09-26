@@ -54,7 +54,7 @@ async function sparql(query){
 }
 async function findQidByIso(iso){
  const code=String(iso||"").trim().toUpperCase();
- if(!/^[A-Z]{2}$/.test(code))return null;
+ if(!new RegExp("^[A-Z]{2}$").test(code))return null;
  try{
    const rows=await sparql('SELECT ?item WHERE {?item wdt:P297 "'+code+'".} LIMIT 5');
    return rows[0]?.item?.value?.split("/").pop()||null;
@@ -138,7 +138,7 @@ async function languageCodesForOfficial(officialIds){
    const e=ents[id]; if(!e)continue;
    const vals=[...prop(e.claims,"P218"),...prop(e.claims,"P219")].map(c=>c?.mainsnak?.datavalue?.value).filter(Boolean);
    for(const v of vals){
-     if(/^[a-z]{2,3}$/i.test(v))out.push(String(v).toLowerCase());
+     if(new RegExp("^[a-z]{2,3}$","i").test(v))out.push(String(v).toLowerCase());
    }
  }
  return [...new Set(out)];
@@ -339,9 +339,10 @@ async function historicalPlacesFor(qid){
 function geoTitleToText(value){
  const s=String(value||"");
  const idx=s.lastIndexOf("Data:");
- if(idx>=0)return s.slice(idx+5).replace(/^[\\/]+/,"");
- const m=s.match(/([^/]+\\.map)$/i);
- return m?decodeURIComponent(m[1]):"";
+ let t=idx>=0?s.slice(idx+5):s;
+ t=t.replace(/^[/\\]+/,"");
+ const dot=t.toLowerCase().lastIndexOf(".map");
+ return dot>=0?decodeURIComponent(t.slice(0,dot+4)):"";
 }
 async function commonsMapGeoJSON(value){
  const title=geoTitleToText(value);if(!title)return null;
