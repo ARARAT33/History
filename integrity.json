@@ -1,6 +1,6 @@
 {
   "algorithm": "SHA-256",
-  "original_commit": "PENDING_BASELINE",
+  "original_commit": "24c7627f1005672566e725501a97a167f5f40239",
   "generated_at": "2026-09-26T23:30:00+04:00",
   "files": {
     "index.html": "bd0b668a75bada2f4c88a57aabf358bfa047990da21284d887d6b34a40c4d1cb",
