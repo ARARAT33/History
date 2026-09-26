@@ -4,9 +4,7 @@ const aliases={"United States of America":"ԱՄՆ","United States":"ԱՄՆ","Rus
 const list=document.querySelector("#country-list"); if(list){countries.forEach(n=>{const b=document.createElement("button");b.className="country-item";b.textContent=n;b.onclick=()=>selectCountry(n);list.appendChild(b)});}
 function selectCountry(n){document.querySelector("#map-status").textContent=n;document.querySelectorAll(".country-item").forEach(b=>b.classList.toggle("active",b.textContent===n));const d=data[n];document.querySelector("#country-panel").innerHTML=`<div class="country-title"><span class="flag-dot"></span><div><small>ՊԵՏՈՒԹՅՈՒՆ</small><h3>${n}</h3></div></div><div class="detail-grid"><div><small>Մայրցամաք</small><strong>${d?.continent||"Տվյալը կավելացվի"}</strong></div><div><small>Տարածքային բաժանում</small><strong>Կցուցադրվի ըստ աղբյուրների</strong></div></div><div class="detail-section"><h4>Ազգեր և ժողովուրդներ</h4>${d?.peoples?.map(p=>`<article class="people-card"><h5>${p.name}</h5><p><b>Տարածք․</b> ${p.areas.join(", ")}</p><p><b>Լեզու․</b> ${p.language}</p><p><b>Կրոն․</b> ${p.religion}</p></article>`).join("")||'<div class="placeholder">Այս պետության ազգաբանական տվյալների բաժինը պատրաստ է լրացման։</div>'}</div><div class="detail-section"><h4>Նյութեր</h4><div class="chips"><span>Նկարներ</span><span>Տեսանյութեր</span><span>Փաստաթղթեր</span></div></div>`};
 
-/* Real local GeoJSON world map — no D3/Leaflet dependency. */
-const mapEl=document.querySelector("#world-map");
-const mapStatus=document.querySelector("#map-status");
+/* Leaflet + OpenStreetMap world map */
 const countryAliases={
  "United States of America":"ԱՄՆ","United States":"ԱՄՆ","Canada":"Կանադա","Mexico":"Մեքսիկա",
  "Brazil":"Բրազիլիա","Argentina":"Արգենտինա","Chile":"Չիլի","Peru":"Պերու","Colombia":"Կոլումբիա",
@@ -50,55 +48,32 @@ const countryAliases={
  "Nauru":"Նաուրու","Palau":"Պալաու","Samoa":"Սամոա","Solomon Islands":"Սողոմոնյան կղզիներ","Tonga":"Տոնգա","Tuvalu":"Տուվալու",
  "Vanuatu":"Վանուատու","Timor-Leste":"Թիմոր-Լեստե","Papua New Guinea":"Պապուա Նոր Գվինեա","South Sudan":"Հարավային Սուդան"
 };
-const escHtml=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
-const project=(lon,lat,w,h)=>[(lon+180)/360*w,(90-lat)/180*h];
-function ringPath(ring,w,h){
-  return ring.map((p,i)=>{const [x,y]=project(p[0],p[1],w,h);return (i?"L":"M")+x.toFixed(2)+" "+y.toFixed(2)}).join(" ")+"Z";
+const mapEl=document.querySelector("#world-map");
+const mapStatus=document.querySelector("#map-status");
+let leafletMap=null,geoLayer=null,selectedLayer=null;
+const countryStyle=feature=>{const seed=String(feature?.properties?.name||"").split("").reduce((a,c)=>a+c.charCodeAt(0),0);const palette=["#e8f1f5","#f6e7cf","#e6f0d9","#f0dfeb","#dfe9f7","#f3ead6","#e3eeee"];return{color:"#fff",weight:1,fillColor:palette[seed%palette.length],fillOpacity:.72};};
+const countryName=layer=>layer?.feature?.properties?.name||"";
+function focusCountry(layer){
+ if(!leafletMap||!layer)return;
+ if(selectedLayer&&selectedLayer!==layer)selectedLayer.setStyle(countryStyle(selectedLayer.feature));
+ selectedLayer=layer;layer.setStyle({color:"#8f2f22",weight:3,fillColor:"#d96b45",fillOpacity:.92});layer.bringToFront();
+ const name=countryAliases[countryName(layer)]||countryName(layer);if(mapStatus)mapStatus.textContent=name;originalSelectCountry(name);
+ const b=layer.getBounds();if(b.isValid())leafletMap.flyToBounds(b,{paddingTopLeft:[20,20],paddingBottomRight:[340,35],maxZoom:7,duration:.9});
 }
-function geometryPath(g,w,h){
-  if(!g)return "";
-  if(g.type==="Polygon")return g.coordinates.map(r=>ringPath(r,w,h)).join(" ");
-  if(g.type==="MultiPolygon")return g.coordinates.map(poly=>poly.map(r=>ringPath(r,w,h)).join(" ")).join(" ");
-  return "";
-}
-let mapFeatures=[];
-let mapSelected=null;
+function resetMap(){if(!leafletMap)return;if(selectedLayer){selectedLayer.setStyle(countryStyle(selectedLayer.feature));selectedLayer=null;}leafletMap.flyToBounds([[-58,-180],[82,180]],{padding:[10,10],maxZoom:2,duration:.8});if(mapStatus)mapStatus.textContent="Ամբողջ աշխարհ";}
 async function initWorldMap(){
-  if(!mapEl)return;
-  try{
-    const res=await fetch("world.geojson",{cache:"no-store"});
-    if(!res.ok)throw new Error("world.geojson "+res.status);
-    const geo=await res.json();
-    mapFeatures=geo.features||[];
-    renderWorldMap();
-  }catch(err){
-    mapEl.innerHTML='<div class="map-error">Քարտեզի տվյալները չբեռնվեցին։</div>';
-    if(mapStatus)mapStatus.textContent="Քարտեզի սխալ";
-    console.error(err);
-  }
+ if(!mapEl||typeof L==="undefined")return;
+ leafletMap=L.map("world-map",{worldCopyJump:true,zoomControl:false,minZoom:1,maxZoom:10,preferCanvas:true,zoomSnap:.25,zoomDelta:.5}).setView([20,0],2);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(leafletMap);
+ try{const res=await fetch("world.geojson",{cache:"no-store"});if(!res.ok)throw new Error("world.geojson "+res.status);const geo=await res.json();
+ geoLayer=L.geoJSON(geo,{style:countryStyle,onEachFeature:(feature,layer)=>{
+   layer.on({click:()=>focusCountry(layer),mouseover:()=>{if(layer!==selectedLayer)layer.setStyle({weight:2,fillOpacity:.9});},mouseout:()=>{if(layer!==selectedLayer)layer.setStyle(countryStyle(feature));}});
+   const n=countryAliases[feature.properties?.name]||feature.properties?.name||"";layer.bindTooltip(n,{sticky:true,direction:"top"});
+ }}).addTo(leafletMap);
+ leafletMap.fitBounds([[-58,-180],[82,180]],{padding:[10,10]});
+ document.querySelector("#map-zoom-in")?.addEventListener("click",()=>leafletMap.zoomIn());
+ document.querySelector("#map-zoom-out")?.addEventListener("click",()=>leafletMap.zoomOut());
+ document.querySelector("#map-reset")?.addEventListener("click",resetMap);
+ }catch(err){mapEl.innerHTML='<div class="map-error">Քարտեզի տվյալները չբեռնվեցին։</div>';console.error(err);}
 }
-function renderWorldMap(){
-  const w=1400,h=700;
-  const paths=mapFeatures.map((f,i)=>{
-    const en=f.properties?.name||f.properties?.iso||"";
-    const hy=countryAliases[en]||en;
-    return '<path class="map-country" data-index="'+i+'" data-country="'+escHtml(hy)+'" d="'+geometryPath(f.geometry,w,h)+'"><title>'+escHtml(hy)+'</title></path>';
-  }).join("");
-  mapEl.innerHTML='<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Աշխարհի իրական երկրների քարտեզ"><rect class="map-ocean" width="'+w+'" height="'+h+'"></rect><g class="graticule"><path d="M0 350H1400M0 175H1400M0 525H1400M350 0V700M700 0V700M1050 0V700"></path></g><g class="map-layer">'+paths+'</g></svg>';
-  mapEl.querySelectorAll(".map-country").forEach(el=>el.addEventListener("click",()=>{
-    mapEl.querySelectorAll(".map-country.selected").forEach(x=>x.classList.remove("selected"));
-    el.classList.add("selected"); mapSelected=Number(el.dataset.index);
-    const name=el.dataset.country; if(mapStatus)mapStatus.textContent=name; selectCountry(name);
-  }));
-}
-function selectMapByArmenian(name){
-  if(!mapEl||!mapFeatures.length)return;
-  const idx=mapFeatures.findIndex(f=>(countryAliases[f.properties?.name]||f.properties?.name)===name);
-  if(idx<0)return;
-  mapEl.querySelectorAll(".map-country.selected").forEach(x=>x.classList.remove("selected"));
-  const el=mapEl.querySelector('.map-country[data-index="'+idx+'"]');
-  if(el){el.classList.add("selected");mapSelected=idx;el.scrollIntoView({block:"nearest",behavior:"smooth"});}
-}
-const originalSelectCountry=selectCountry;
-selectCountry=function(n){originalSelectCountry(n);selectMapByArmenian(n);};
 initWorldMap();
