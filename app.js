@@ -374,8 +374,10 @@ function sourceMarkup(place){
 }
 function placeInspectorHtml(place,index){
  const conf=confidenceFor(place);
- const periods=place.periods.length?place.periods.map(p=>'<div class="period-card"><strong>'+p.html+'</strong></div>').join(""):'<div class="period-card"><strong>Ժամանակաշրջանը աղբյուրում նշված չէ</strong></div>';
- return '<div class="inspector-head"><span class="eyebrow">HISTORICAL PLACE · '+esc(place.id)+'</span><button type="button" class="inspector-close" onclick="window.historyMapClearSelection()">×</button></div><h4>'+esc(place.name)+'</h4><p class="place-description">'+esc(place.description||"Պատմական բնակության/կապի վայր՝ ըստ հասանելի կառուցվածքային տվյալների։")+'</p><div class="period-stack">'+periods+'</div><div class="confidence '+conf.className+'"><span>'+esc(conf.label)</span><small>'+esc(conf.why)+'</small></div><div class="place-sources"><strong>Աղբյուր</strong>'+sourceMarkup(place)+'</div>';
+ const periods=place.periods.length
+   ?place.periods.map(p=>'<div class="period-card"><strong>'+p.html+'</strong></div>').join("")
+   :'<div class="period-card"><strong>Ժամանակաշրջանը աղբյուրում նշված չէ</strong></div>';
+ return \`<div class="inspector-head"><span class="eyebrow">HISTORICAL PLACE · \${esc(place.id)}</span><button type="button" class="inspector-close" onclick="window.historyMapClearSelection()">×</button></div><h4>\${esc(place.name)}</h4><p class="place-description">\${esc(place.description||"Պատմական բնակության/կապի վայր՝ ըստ հասանելի կառուցվածքային տվյալների։")}</p><div class="period-stack">\${periods}</div><div class="confidence \${conf.className}"><span>\${esc(conf.label)}</span><small>\${esc(conf.why)}</small></div><div class="place-sources"><strong>Աղբյուր</strong>\${sourceMarkup(place)}</div>\`;
 }
 function showHistoryPlace(place,index){
  const inspector=document.querySelector("#history-inspector");if(!inspector)return;
