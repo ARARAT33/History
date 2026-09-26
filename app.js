@@ -9,8 +9,48 @@ const claimId=c=>c?.mainsnak?.datavalue?.value?.id||"";
 const claimText=c=>c?.mainsnak?.datavalue?.value?.amount?Number(c.mainsnak.datavalue.value.amount).toLocaleString("en-US"):claimId(c)||"";
 const timeText=v=>{if(!v)return null;const s=v.time||v;const m=String(s).match(/[-+](\d{1,6})/);if(!m)return null;return Number(m[1])<0?Math.abs(Number(m[1]))+" մ.թ.ա.":m[1]+" թ."};
 const prop=(claims,p)=>Array.isArray(claims?.[p])?claims[p]:[];
-async function wikidataSearch(name){const u=WIKIDATA_API+"?action=wbsearchentities&search="+encodeURIComponent(name)+"&language=en&uselang=en&type=item&limit=8&origin=*";const res=await fetch(u); if(!res.ok) throw Error("Wikidata API "+res.status); const j=await res.json();const a=j.search||[];return a.find(x=>x.label?.toLowerCase()===String(name).toLowerCase())||a[0]||null}
-async function wikidataEntity(name){const hit=await wikidataSearch(name);if(!hit)return null;const urls=["https://www.wikidata.org/wiki/Special:EntityData/"+encodeURIComponent(hit.id)+".json","https://www.wikidata.org/w/api.php?action=wbgetentities&ids="+encodeURIComponent(hit.id)+"&props=labels|descriptions|claims&languages=hy|en&format=json&origin=*"];for(const u of urls){try{const res=await fetch(u,{headers:{Accept:"application/json"}});const text=await res.text();if(!res.ok||!text.trim().startsWith("{"))continue;const j=JSON.parse(text);const e=j.entities?.[hit.id];if(e)return{...e,search:hit}}catch(_){}}return null}
+async function wikidataSearch(name){
+ const title=String(name||"").trim();
+ const u="https://en.wikipedia.org/w/api.php?action=query&prop=pageprops&redirects=1&titles="+encodeURIComponent(title)+"&format=json&origin=*";
+ const res=await fetch(u);
+ const text=await res.text();
+ if(!res.ok||!text.trim().startsWith("{"))throw Error("Wikipedia API "+res.status);
+ const j=JSON.parse(text);
+ const pages=Object.values(j.query?.pages||{});
+ const p=pages.find(x=>x.pageprops?.wikibase_item);
+ return p?{id:p.pageprops.wikibase_item,label:p.title}:null;
+}
+function normalizeRestEntity(j,id){
+ const src=j?.id?id:j?.id;
+ if(!src)return null;
+ const claims={};
+ for(const [pid,items] of Object.entries(j.statements||{})){
+  claims[pid]=items.map(s=>({rank:s.rank||"normal",mainsnak:{snaktype:"value",datavalue:s.value?.type?{value:s.value.value,type:s.value.type}:undefined},qualifiers:s.qualifiers||{}}));
+ }
+ const labels={};
+ for(const [lang,v] of Object.entries(j.labels||{}))labels[lang]={language:lang,value:v};
+ return {id:src,labels,claims,search:{id:src,label:j.labels?.en||j.labels?.hy||src}};
+}
+async function wikidataEntity(name){
+ const hit=await wikidataSearch(name); if(!hit)return null;
+ const urls=[
+  "https://www.wikidata.org/wiki/Special:EntityData/"+encodeURIComponent(hit.id)+".json",
+  "https://www.wikidata.org/w/rest.php/wikibase/v1/entities/items/"+encodeURIComponent(hit.id)
+ ];
+ for(const u of urls){
+  try{
+   const res=await fetch(u,{headers:{"Accept":"application/json"}});
+   const text=await res.text();
+   if(!res.ok||!text.trim().startsWith("{"))continue;
+   const j=JSON.parse(text);
+   const e=j.entities?.[hit.id];
+   if(e)return {...e,search:hit};
+   const rest=normalizeRestEntity(j,hit.id);
+   if(rest)return rest;
+  }catch(_){}
+ }
+ return null;
+}
 async function sparql(query){const u=WDQS+"?format=json&query="+encodeURIComponent(query);const r=await fetch(u,{headers:{Accept:"application/sparql-results+json"}});if(!r.ok)throw Error("WDQS "+r.status);return(await r.json()).results?.bindings||[]}
 function latestPopulation(claims){const rows=prop(claims,"P1082").map(c=>({v:claimText(c),date:c.qualifiers?.P585?.[0]?.datavalue?.value?.time||""})).filter(x=>x.v);rows.sort((a,b)=>Number((b.date.match(/[-+]\d+/)||["0"])[0])-Number((a.date.match(/[-+]\d+/)||["0"])[0]));return rows[0]||null}
 function labelFromEntity(e,id){return e?.[id]?.labels?.hy?.value||e?.[id]?.labels?.en?.value||id}
