@@ -1,9 +1,9 @@
-const ORIGINAL_COMMIT="ae51e383e2405cb5a3a2a19b894524bf9caebaf9";
+const ORIGINAL_COMMIT="3da3e747312db60db073ab41e6dd92084517b704";
 async function sha256(text){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(text));return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,"0")).join("");}
 async function verifySite(){
  const box=document.querySelector("#integrity-status"); if(!box)return;
  try{
-  const m=await (await fetch("https://raw.githubusercontent.com/ARARAT33/History/ae51e383e2405cb5a3a2a19b894524bf9caebaf9/integrity.json",{cache:"no-store"})).json();
+  const m=await (await fetch("https://raw.githubusercontent.com/ARARAT33/History/3da3e747312db60db073ab41e6dd92084517b704/integrity.json",{cache:"no-store"})).json();
   const results=[];
   for(const [path,expected] of Object.entries(m.files)){const r=await fetch(path+"?"+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error(path+" "+r.status);results.push([path,expected,await sha256(await r.text())]);}
   const bad=results.filter(x=>x[1]!==x[2]);
