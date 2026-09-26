@@ -1,0 +1,19 @@
+{
+  "algorithm": "SHA-256",
+  "original_commit": "3da5293560c9dd03b80d39880e4a360a8c9261ae",
+  "generated_at": "2026-09-26",
+  "files": {
+    "index.html": "267e4127021c93d8d9796514b9b2d7b8cdc6ad193a653429f90806dcde69060d",
+    "countries.html": "a2ab55c5dd1365cdc5946aeb13c5891747c8f550f8fb4a70ba902007437e8c2b",
+    "peoples.html": "1fa5fa6d9dc0b8fb9074aa1a249654031f99439d7d41e19308e6dba80a7dfcef",
+    "materials.html": "17d509adf0f7fa6b83435d8f97ba84f191a130fa52a6cc5302d6fd662c369165",
+    "images.html": "1f808d31531dd7209cf8917ff1125f7349c31a3224bd085c4de3cce32715cae3",
+    "videos.html": "962fc07241526a11287430a37fa29dd5345f9578e4863617293c18710c7ac742",
+    "documents.html": "8c51cf8c10e2137fa8e60f10cfc5b49dda5236d998f999863212416115d6b0b8",
+    "history.html": "7641e01a943b176bdc3726be053e3ec31fe354eee67c898a16a5c77a8b0dcd6e",
+    "about.html": "b238c5a5a8ff693d49b262526040e64cf3d769176fc64790ed725f2403cfd11a",
+    "app.js": "864bf57d0280048c1a04f7bed8fb0ec173d256fbc29dc9f5a9a2eecfebfed782",
+    "style.css": "5c9718747543a56ad112e2c1dc78707c75935f8282de69c7a4e7b5c1a9c5c6bc",
+    "world.geojson": "1b9ac0662b997aefaa1be95c938b0aad00fbbf1b39447053959ff76f87f67604"
+  }
+}
