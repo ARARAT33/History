@@ -3,15 +3,15 @@ const aliases={"United States of America":"ԱՄՆ","United States":"ԱՄՆ","Rus
 const WIKIDATA_API="https://www.wikidata.org/w/api.php";
 const WDQS="https://query.wikidata.org/sparql";
 const COMMONS_API="https://commons.wikimedia.org/w/api.php";
-const esc=s=>String(s??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const esc=s=>String(s??"").replace(new RegExp("[&<>\\\"\']","g"),c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\'":"&#39;"}[c]));
 const isoFlag=iso=>String(iso||"").length===2?[...iso.toUpperCase()].map(c=>String.fromCodePoint(c.charCodeAt(0)+127397)).join(""):"";
 const claimId=c=>c?.mainsnak?.datavalue?.value?.id||"";
 const claimAmount=c=>{const a=c?.mainsnak?.datavalue?.value?.amount;return a==null?null:Number(a)};
 const prop=(claims,p)=>Array.isArray(claims?.[p])?claims[p]:[];
 const timeValue=v=>v?.time||v||"";
-const yearOf=v=>{const m=String(timeValue(v)).match(/[-+](\d+)/);return m?Number(m[1]):null};
+const yearOf=v=>{const m=String(timeValue(v)).match(new RegExp("[-+](\\d+)"));return m?Number(m[1]):null};
 const precisionOf=v=>Number(v?.precision||0);
-const exactDate=v=>{const s=String(timeValue(v));const m=s.match(/[-+](\d{1,6})-(\d{2})-(\d{2})/);if(!m)return yearOf(v);return Number(m[1])};
+const exactDate=v=>{const s=String(timeValue(v));const m=s.match(new RegExp("[-+](\\d{1,6})-(\\d{2})-(\\d{2})"));if(!m)return yearOf(v);return Number(m[1])};
 const formatYear=y=>{if(y==null)return "";const n=Math.abs(y);return y<0?"մ.թ.ա. "+n:"մ.թ. "+n};
 function centuryLabel(y){
  if(y==null)return "";
@@ -195,7 +195,7 @@ function ethnicRows(rows,lang,entities){
  return rows.map(x=>{
    const id=x.ethnic?.value?.split("/").pop()||""; if(!id||seen.has(id))return ""; seen.add(id);
    const n=valueLabel(entities,id,lang)||x.ethnicLabel?.value||""; if(!n)return "";
-   const pct=x.value?.value!=null?(Number(x.value.value)*100).toFixed(2).replace(/\.?0+$/,"")+"%":"";
+   const pct=x.value?.value!=null?String(Math.round(Number(x.value.value)*10000)/100).replaceAll(".0","")+"%":"";
    const d=x.date?.value?claimDate({qualifiers:{P585:[{datavalue:{value:x.date.value}}]}}):"";
    const period=x.periodLabel?.value?x.periodLabel.value:"";
    return '<button type="button" class="people-row" data-people-id="'+esc(id)+'" data-people-name="'+esc(n)+'"><span><strong>'+esc(n)+'</strong><small>'+([pct,d,period].filter(Boolean).map(esc).join(" · ")||"Տվյալների մանրամասներ")+'</small></span><b>→</b></button>';
@@ -206,7 +206,7 @@ function religionRows(rows,lang,entities){
  return rows.map(x=>{
    const id=x.religion?.value?.split("/").pop()||""; if(!id||seen.has(id))return ""; seen.add(id);
    const n=valueLabel(entities,id,lang)||x.religionLabel?.value||""; if(!n)return "";
-   const pct=x.value?.value!=null?(Number(x.value.value)*100).toFixed(2).replace(/\.?0+$/,"")+"%":"";
+   const pct=x.value?.value!=null?String(Math.round(Number(x.value.value)*10000)/100).replaceAll(".0","")+"%":"";
    const d=x.date?.value?formatYear(yearOf(x.date.value)):"";
    return '<div class="simple-row"><span><strong>'+esc(n)+'</strong><small>'+([pct,d].filter(Boolean).map(esc).join(" · ")||"")+'</small></span></div>';
  }).join("")||'<div class="empty-data">Կրոնական կառուցվածքային տվյալներ չկան։</div>';
@@ -297,12 +297,12 @@ function resetMap(){
  if(mapStatus)mapStatus.textContent="Ամբողջ աշխարհ";
 }
 function parseCoord(value){
- const m=String(value||"").match(/Point\\(([-\\d.]+)\\s+([-\\d.]+)\\)/i);
- if(!m)return null;
- return [Number(m[2]),Number(m[1])];
+ const raw=String(value||"").trim();
+ if(!raw.toLowerCase().startsWith("point(")||!raw.endsWith(")"))return null;
+ const parts=raw.slice(raw.indexOf("(")+1,-1).trim().split(" ").filter(Boolean);
+ if(parts.length<2)return null;
+ return [Number(parts[1]),Number(parts[0])];
 }
-function confidenceFor(place){
- const refs=place.sources.length>0,shape=Boolean(place.geo),coord=Boolean(place.coord);
  const dated=place.periods.some(p=>p.hasDate);
  if(refs&&shape&&dated)return {label:"Բարձր",className:"high",why:"աղբյուր + տարածք + ժամանակային տվյալ"};
  if((refs&&dated)||(shape&&dated))return {label:"Միջին",className:"medium",why:"աղբյուր կամ տարածքային տվյալ + ժամանակ"};
@@ -340,7 +340,7 @@ function geoTitleToText(value){
  const s=String(value||"");
  const idx=s.lastIndexOf("Data:");
  let t=idx>=0?s.slice(idx+5):s;
- t=t.replace(/^[/\\]+/,"");
+ while(t.startsWith("/")||t.startsWith("\\"))t=t.slice(1);
  const dot=t.toLowerCase().lastIndexOf(".map");
  return dot>=0?decodeURIComponent(t.slice(0,dot+4)):"";
 }
