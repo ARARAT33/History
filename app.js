@@ -301,8 +301,14 @@ function parseCoord(value){
  if(!raw.toLowerCase().startsWith("point(")||!raw.endsWith(")"))return null;
  const parts=raw.slice(raw.indexOf("(")+1,-1).trim().split(" ").filter(Boolean);
  if(parts.length<2)return null;
- return [Number(parts[1]),Number(parts[0])];
+ const lon=Number(parts[0]),lat=Number(parts[1]);
+ if(!Number.isFinite(lon)||!Number.isFinite(lat))return null;
+ return [lat,lon];
 }
+function confidenceFor(place){
+ const refs=place.sources.length>0;
+ const shape=Boolean(place.geo);
+ const coord=Boolean(place.coord);
  const dated=place.periods.some(p=>p.hasDate);
  if(refs&&shape&&dated)return {label:"Բարձր",className:"high",why:"աղբյուր + տարածք + ժամանակային տվյալ"};
  if((refs&&dated)||(shape&&dated))return {label:"Միջին",className:"medium",why:"աղբյուր կամ տարածքային տվյալ + ժամանակ"};
