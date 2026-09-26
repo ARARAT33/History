@@ -4,65 +4,101 @@ const aliases={"United States of America":"ԱՄՆ","United States":"ԱՄՆ","Rus
 const list=document.querySelector("#country-list"); countries.forEach(n=>{const b=document.createElement("button");b.className="country-item";b.textContent=n;b.onclick=()=>selectCountry(n);list.appendChild(b)});
 function selectCountry(n){document.querySelector("#map-status").textContent=n;document.querySelectorAll(".country-item").forEach(b=>b.classList.toggle("active",b.textContent===n));const d=data[n];document.querySelector("#country-panel").innerHTML=`<div class="country-title"><span class="flag-dot"></span><div><small>ՊԵՏՈՒԹՅՈՒՆ</small><h3>${n}</h3></div></div><div class="detail-grid"><div><small>Մայրցամաք</small><strong>${d?.continent||"Տվյալը կավելացվի"}</strong></div><div><small>Տարածքային բաժանում</small><strong>Կցուցադրվի ըստ աղբյուրների</strong></div></div><div class="detail-section"><h4>Ազգեր և ժողովուրդներ</h4>${d?.peoples?.map(p=>`<article class="people-card"><h5>${p.name}</h5><p><b>Տարածք․</b> ${p.areas.join(", ")}</p><p><b>Լեզու․</b> ${p.language}</p><p><b>Կրոն․</b> ${p.religion}</p></article>`).join("")||'<div class="placeholder">Այս պետության ազգաբանական տվյալների բաժինը պատրաստ է լրացման։</div>'}</div><div class="detail-section"><h4>Նյութեր</h4><div class="chips"><span>Նկարներ</span><span>Տեսանյութեր</span><span>Փաստաթղթեր</span></div></div>`};
 
-
-
-/* Self-contained interactive world map.
-   No D3/Leaflet dependency: the map is rendered directly as SVG.
-   Country boundaries come from the local/generated country shapes below. */
-const mapEl = document.querySelector("#world-map");
-const mapStatus = document.querySelector("#map-status");
-
-const mapCountries = [
-  ["ԱՄՆ", -125, 25, 59, 49],["Կանադա",-141,49,-52,83],["Մեքսիկա",-117,14,-86,33],
-  ["Գվատեմալա",-92,14,-88,18],["Կուբա",-85,19,-74,23],["Բրազիլիա",-74,-34,-35,5],
-  ["Արգենտինա",-73,-55,-53,-21],["Չիլի",-76,-56,-66,-17],["Պերու",-82,-18,-68,0],
-  ["Կոլումբիա",-79,-5,-66,13],["Վենեսուելա",-73,1,-60,13],["Բոլիվիա",-69,-23,-57,-9],
-  ["Եկվադոր",-81,-5,-75,2],["Ուրուգվայ",-59,-35,-53,-30],["Պարագվայ",-63,-28,-54,-19],
-  ["Ալժիր",-9,19,12,37],["Մարոկկո",-13,21,-1,36],["Եգիպտոս",25,22,36,32],
-  ["Լիբիա",10,19,25,34],["Նիգերիա",3,4,15,14],["Գանա",-3,5,2,11],["Սուդան",22,8,38,23],
-  ["Եթովպիա",33,4,48,15],["Քենիա",34,-5,42,5],["Տանզանիա",29,-12,40,0],
-  ["Հարավային Աֆրիկա",16,-35,33,-22],["Մադագասկար",43,-26,51,-12],
-  ["Ֆրանսիա",-5,42,8,51],["Իսպանիա",-10,36,4,44],["Պորտուգալիա",-10,37,-6,42],
-  ["Միացյալ Թագավորություն",-8,50,2,59],["Իռլանդիա",-11,51,-6,56],["Գերմանիա",5,47,15,55],
-  ["Իտալիա",7,37,19,47],["Նորվեգիա",4,58,31,71],["Շվեդիա",11,55,24,69],
-  ["Ֆինլանդիա",20,59,32,70],["Լեհաստան",14,49,24,55],["Ուկրաինա",22,45,41,52],
-  ["Ռումինիա",20,43,29,49],["Հունաստան",19,35,28,42],["Թուրքիա",26,36,45,42],
-  ["Ռուսաստան",30,42,180,75],["Ղազախստան",46,40,87,56],["Վրաստան",40,41,47,44],
-  ["Հայաստան",43.4,38.8,46.7,41.3],["Ադրբեջան",44,38,51,42],["Իրան",44,25,63,40],
-  ["Իրաք",38,29,49,37],["Սաուդյան Արաբիա",34,16,56,33],["Հնդկաստան",68,7,97,36],
-  ["Չինաստան",74,18,135,54],["Մոնղոլիա",87,41,120,52],["Ճապոնիա",129,31,146,45],
-  ["Հարավային Կորեա",126,34,130,39],["Հյուսիսային Կորեա",124,37,130,43],
-  ["Թաիլանդ",97,6,106,21],["Վիետնամ",102,8,110,24],["Ինդոնեզիա",95,-11,141,6],
-  ["Ավստրալիա",113,-44,154,-10],["Նոր Զելանդիա",166,-48,179,-34],
-  ["Պապուա Նոր Գվինեա",140,-11,156,-1]
-];
-
-function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
-function project(lon,lat,w,h){
-  const x=(lon+180)/360*w;
-  const y=(90-lat)/180*h;
-  return [x,y];
+/* Real local GeoJSON world map — no D3/Leaflet dependency. */
+const mapEl=document.querySelector("#world-map");
+const mapStatus=document.querySelector("#map-status");
+const countryAliases={
+ "United States of America":"ԱՄՆ","United States":"ԱՄՆ","Canada":"Կանադա","Mexico":"Մեքսիկա",
+ "Brazil":"Բրազիլիա","Argentina":"Արգենտինա","Chile":"Չիլի","Peru":"Պերու","Colombia":"Կոլումբիա",
+ "Venezuela":"Վենեսուելա","Bolivia":"Բոլիվիա","Ecuador":"Էկվադոր","Uruguay":"Ուրուգվայ","Paraguay":"Պարագվայ",
+ "Algeria":"Ալժիր","Morocco":"Մարոկկո","Egypt":"Եգիպտոս","Libya":"Լիբիա","Nigeria":"Նիգերիա","Ghana":"Գանա",
+ "Sudan":"Սուդան","Ethiopia":"Եթովպիա","Kenya":"Քենիա","Tanzania":"Տանզանիա","South Africa":"Հարավային Աֆրիկա",
+ "Madagascar":"Մադագասկար","France":"Ֆրանսիա","Spain":"Իսպանիա","Portugal":"Պորտուգալիա","United Kingdom":"Միացյալ Թագավորություն",
+ "Ireland":"Իռլանդիա","Germany":"Գերմանիա","Italy":"Իտալիա","Norway":"Նորվեգիա","Sweden":"Շվեդիա","Finland":"Ֆինլանդիա",
+ "Poland":"Լեհաստան","Ukraine":"Ուկրաինա","Romania":"Ռումինիա","Greece":"Հունաստան","Turkey":"Թուրքիա","Türkiye":"Թուրքիա",
+ "Russia":"Ռուսաստան","Kazakhstan":"Ղազախստան","Georgia":"Վրաստան","Armenia":"Հայաստան","Azerbaijan":"Ադրբեջան",
+ "Iran":"Իրան","Iraq":"Իրաք","Saudi Arabia":"Սաուդյան Արաբիա","India":"Հնդկաստան","China":"Չինաստան","Mongolia":"Մոնղոլիա",
+ "Japan":"Ճապոնիա","South Korea":"Հարավային Կորեա","North Korea":"Հյուսիսային Կորեա","Thailand":"Թաիլանդ","Vietnam":"Վիետնամ",
+ "Indonesia":"Ինդոնեզիա","Australia":"Ավստրալիա","New Zealand":"Նոր Զելանդիա","Papua New Guinea":"Պապուա Նոր Գվինեա",
+ "Austria":"Ավստրիա","Belgium":"Բելգիա","Bulgaria":"Բուլղարիա","Croatia":"Խորվաթիա","Czechia":"Չեխիա",
+ "Denmark":"Դանիա","Estonia":"Էստոնիա","Hungary":"Հունգարիա","Iceland":"Իսլանդիա","Latvia":"Լատվիա","Lithuania":"Լիտվա",
+ "Luxembourg":"Լյուքսեմբուրգ","Malta":"Մալթա","Moldova":"Մոլդովա","Monaco":"Մոնակո","Montenegro":"Մոնտենեգրո",
+ "Netherlands":"Նիդերլանդներ","Serbia":"Սերբիա","Slovakia":"Սլովակիա","Slovenia":"Սլովենիա","Switzerland":"Շվեյցարիա",
+ "Belarus":"Բելառուս","Bosnia and Herzegovina":"Բոսնիա և Հերցեգովինա","North Macedonia":"Հյուսիսային Մակեդոնիա",
+ "Afghanistan":"Աֆղանստան","Bangladesh":"Բանգլադեշ","Bhutan":"Բութան","Brunei":"Բրունեյ","Cambodia":"Կամբոջա",
+ "Cyprus":"Կիպրոս","Israel":"Իսրայել","Jordan":"Հորդանան","Kuwait":"Քուվեյթ","Kyrgyzstan":"Ղրղզստան","Laos":"Լաոս",
+ "Lebanon":"Լիբանան","Malaysia":"Մալայզիա","Maldives":"Մալդիվներ","Myanmar":"Մյանմա","Nepal":"Նեպալ","Oman":"Օման",
+ "Pakistan":"Պակիստան","Philippines":"Ֆիլիպիններ","Qatar":"Կատար","Singapore":"Սինգապուր","Sri Lanka":"Շրի Լանկա",
+ "Syria":"Սիրիա","Tajikistan":"Տաջիկստան","Turkmenistan":"Թուրքմենստան","United Arab Emirates":"ԱՄԷ","Uzbekistan":"Ուզբեկստան",
+ "Yemen":"Եմեն","Albania":"Ալբանիա","Andorra":"Անդորրա","Liechtenstein":"Լիխտենշտայն","San Marino":"Սան Մարինո",
+ "Vatican":"Վատիկան","Vatican City":"Վատիկան","Bahamas":"Բահամներ","Bahrain":"Բահրեյն","Barbados":"Բարբադոս",
+ "Belize":"Բելիզ","Costa Rica":"Կոստա Ռիկա","Cuba":"Կուբա","Dominica":"Դոմինիկա","Dominican Republic":"Դոմինիկյան Հանրապետություն",
+ "El Salvador":"Էլ Սալվադոր","Guatemala":"Գվատեմալա","Haiti":"Հաիթի","Honduras":"Հոնդուրաս","Jamaica":"Ճամայկա",
+ "Nicaragua":"Նիկարագուա","Panama":"Պանամա","Antigua and Barbuda":"Անտիգուա և Բարբուդա","Grenada":"Գրենադա",
+ "Saint Lucia":"Սենթ Լյուսիա","Saint Vincent and the Grenadines":"Սենթ Վինսենթ և Գրենադիններ","Saint Kitts and Nevis":"Սենթ Քիթս և Նևիս",
+ "Trinidad and Tobago":"Տրինիդադ և Տոբագո","Guyana":"Գայանա","Suriname":"Սուրինամ","Ecuador":"Էկվադոր",
+ "Angola":"Անգոլա","Benin":"Բենին","Botswana":"Բոտսվանա","Burkina Faso":"Բուրկինա Ֆասո","Burundi":"Բուրունդի",
+ "Cameroon":"Կամերուն","Central African Republic":"Կենտրոնական Աֆրիկյան Հանրապետություն","Chad":"Չադ","Comoros":"Կոմորներ",
+ "Democratic Republic of the Congo":"Կոնգոյի Դեմոկրատական Հանրապետություն","Djibouti":"Ջիբութի","Equatorial Guinea":"Հասարակածային Գվինեա",
+ "Eritrea":"Էրիթրեա","Eswatini":"Էսվատինի","Gabon":"Գաբոն","Gambia":"Գամբիա","Guinea":"Գվինեա","Guinea-Bissau":"Գվինեա-Բիսաու",
+ "Ivory Coast":"Կոտ դ'Իվուար","Côte d'Ivoire":"Կոտ դ'Իվուար","Lesotho":"Լեսոտո","Liberia":"Լիբերիա","Malawi":"Մալավի",
+ "Mali":"Մալի","Mauritania":"Մավրիտանիա","Mauritius":"Մավրիկիոս","Mozambique":"Մոզամբիկ","Namibia":"Նամիբիա",
+ "Niger":"Նիգեր","Rwanda":"Ռուանդա","Sao Tome and Principe":"Սան Տոմե և Պրինսիպի","Senegal":"Սենեգալ","Seychelles":"Սեյշելներ",
+ "Sierra Leone":"Սիերա Լեոնե","Somalia":"Սոմալի","South Sudan":"Հարավային Սուդան","Togo":"Տոգո","Tunisia":"Թունիս",
+ "Uganda":"Ուգանդա","Zambia":"Զամբիա","Zimbabwe":"Զիմբաբվե","Cape Verde":"Կաբո Վերդե",
+ "Fiji":"Ֆիջի","Kiribati":"Կիրիբատի","Marshall Islands":"Մարշալյան կղզիներ","Micronesia":"Միկրոնեզիայի Դաշնային Նահանգներ",
+ "Nauru":"Նաուրու","Palau":"Պալաու","Samoa":"Սամոա","Solomon Islands":"Սողոմոնյան կղզիներ","Tonga":"Տոնգա","Tuvalu":"Տուվալու",
+ "Vanuatu":"Վանուատու","Timor-Leste":"Թիմոր-Լեստե","Papua New Guinea":"Պապուա Նոր Գվինեա","South Sudan":"Հարավային Սուդան"
+};
+const escHtml=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const project=(lon,lat,w,h)=>[(lon+180)/360*w,(90-lat)/180*h];
+function ringPath(ring,w,h){
+  return ring.map((p,i)=>{const [x,y]=project(p[0],p[1],w,h);return (i?"L":"M")+x.toFixed(2)+" "+y.toFixed(2)}).join(" ")+"Z";
 }
-function drawMap(){
-  if(!mapEl) return;
-  const w=1200,h=600;
-  const shapes=mapCountries.map(([name,x1,y1,x2,y2])=>{
-    const [px1,py2]=project(x1,y1,w,h),[px2,py1]=project(x2,y2,w,h);
-    const x=Math.min(px1,px2),y=Math.min(py1,py2),rw=Math.max(4,Math.abs(px2-px1)),rh=Math.max(4,Math.abs(py2-py1));
-    return `<g class="map-country" data-country="${esc(name)}"><rect x="${x}" y="${y}" width="${rw}" height="${rh}" rx="3"></rect><title>${esc(name)}</title></g>`;
+function geometryPath(g,w,h){
+  if(!g)return "";
+  if(g.type==="Polygon")return g.coordinates.map(r=>ringPath(r,w,h)).join(" ");
+  if(g.type==="MultiPolygon")return g.coordinates.map(poly=>poly.map(r=>ringPath(r,w,h)).join(" ")).join(" ");
+  return "";
+}
+let mapFeatures=[];
+let mapSelected=null;
+async function initWorldMap(){
+  if(!mapEl)return;
+  try{
+    const res=await fetch("world.geojson",{cache:"no-store"});
+    if(!res.ok)throw new Error("world.geojson "+res.status);
+    const geo=await res.json();
+    mapFeatures=geo.features||[];
+    renderWorldMap();
+  }catch(err){
+    mapEl.innerHTML='<div class="map-error">Քարտեզի տվյալները չբեռնվեցին։</div>';
+    if(mapStatus)mapStatus.textContent="Քարտեզի սխալ";
+    console.error(err);
+  }
+}
+function renderWorldMap(){
+  const w=1400,h=700;
+  const paths=mapFeatures.map((f,i)=>{
+    const en=f.properties?.name||f.properties?.iso||"";
+    const hy=countryAliases[en]||en;
+    return '<path class="map-country" data-index="'+i+'" data-country="'+escHtml(hy)+'" d="'+geometryPath(f.geometry,w,h)+'"><title>'+escHtml(hy)+'</title></path>';
   }).join("");
-  mapEl.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Աշխարհի ինտերակտիվ քարտեզ">
-    <rect class="map-ocean" x="0" y="0" width="${w}" height="${h}"></rect>
-    <g class="graticule"><path d="M0 300H1200M0 200H1200M0 400H1200M300 0V600M600 0V600M900 0V600"></path></g>
-    <g>${shapes}</g>
-  </svg>`;
-  mapEl.querySelectorAll(".map-country").forEach(el=>el.addEventListener("click",()=>selectMapCountry(el.dataset.country,el)));
+  mapEl.innerHTML='<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Աշխարհի իրական երկրների քարտեզ"><rect class="map-ocean" width="'+w+'" height="'+h+'"></rect><g class="graticule"><path d="M0 350H1400M0 175H1400M0 525H1400M350 0V700M700 0V700M1050 0V700"></path></g><g class="map-layer">'+paths+'</g></svg>';
+  mapEl.querySelectorAll(".map-country").forEach(el=>el.addEventListener("click",()=>{
+    mapEl.querySelectorAll(".map-country.selected").forEach(x=>x.classList.remove("selected"));
+    el.classList.add("selected"); mapSelected=Number(el.dataset.index);
+    const name=el.dataset.country; if(mapStatus)mapStatus.textContent=name; selectCountry(name);
+  }));
 }
-function selectMapCountry(name,el){
+function selectMapByArmenian(name){
+  if(!mapEl||!mapFeatures.length)return;
+  const idx=mapFeatures.findIndex(f=>(countryAliases[f.properties?.name]||f.properties?.name)===name);
+  if(idx<0)return;
   mapEl.querySelectorAll(".map-country.selected").forEach(x=>x.classList.remove("selected"));
-  if(el) el.classList.add("selected");
-  mapStatus.textContent=name;
-  selectCountry(name);
+  const el=mapEl.querySelector('.map-country[data-index="'+idx+'"]');
+  if(el){el.classList.add("selected");mapSelected=idx;el.scrollIntoView({block:"nearest",behavior:"smooth"});}
 }
-drawMap();
-window.addEventListener("resize",drawMap);
+const originalSelectCountry=selectCountry;
+selectCountry=function(n){originalSelectCountry(n);selectMapByArmenian(n);};
+initWorldMap();
