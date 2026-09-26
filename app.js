@@ -5,88 +5,64 @@ const list=document.querySelector("#country-list"); countries.forEach(n=>{const 
 function selectCountry(n){document.querySelector("#map-status").textContent=n;document.querySelectorAll(".country-item").forEach(b=>b.classList.toggle("active",b.textContent===n));const d=data[n];document.querySelector("#country-panel").innerHTML=`<div class="country-title"><span class="flag-dot"></span><div><small>ՊԵՏՈՒԹՅՈՒՆ</small><h3>${n}</h3></div></div><div class="detail-grid"><div><small>Մայրցամաք</small><strong>${d?.continent||"Տվյալը կավելացվի"}</strong></div><div><small>Տարածքային բաժանում</small><strong>Կցուցադրվի ըստ աղբյուրների</strong></div></div><div class="detail-section"><h4>Ազգեր և ժողովուրդներ</h4>${d?.peoples?.map(p=>`<article class="people-card"><h5>${p.name}</h5><p><b>Տարածք․</b> ${p.areas.join(", ")}</p><p><b>Լեզու․</b> ${p.language}</p><p><b>Կրոն․</b> ${p.religion}</p></article>`).join("")||'<div class="placeholder">Այս պետության ազգաբանական տվյալների բաժինը պատրաստ է լրացման։</div>'}</div><div class="detail-section"><h4>Նյութեր</h4><div class="chips"><span>Նկարներ</span><span>Տեսանյութեր</span><span>Փաստաթղթեր</span></div></div>`};
 
 
-// Real OpenStreetMap map using Leaflet.
-// The base layer is the actual OSM map; the country boundary overlay is used
-// only for selecting/highlighting countries.
-const map = L.map("world-map", {
-  center: [20, 0],
-  zoom: 2,
-  minZoom: 2,
-  maxZoom: 18,
-  worldCopyJump: false,
-  zoomControl: true
-});
 
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: "&copy; OpenStreetMap contributors"
-}).addTo(map);
+/* Self-contained interactive world map.
+   No D3/Leaflet dependency: the map is rendered directly as SVG.
+   Country boundaries come from the local/generated country shapes below. */
+const mapEl = document.querySelector("#world-map");
+const mapStatus = document.querySelector("#map-status");
 
-let countryLayer;
-let selectedLayer;
+const mapCountries = [
+  ["ԱՄՆ", -125, 25, 59, 49],["Կանադա",-141,49,-52,83],["Մեքսիկա",-117,14,-86,33],
+  ["Գվատեմալա",-92,14,-88,18],["Կուբա",-85,19,-74,23],["Բրազիլիա",-74,-34,-35,5],
+  ["Արգենտինա",-73,-55,-53,-21],["Չիլի",-76,-56,-66,-17],["Պերու",-82,-18,-68,0],
+  ["Կոլումբիա",-79,-5,-66,13],["Վենեսուելա",-73,1,-60,13],["Բոլիվիա",-69,-23,-57,-9],
+  ["Եկվադոր",-81,-5,-75,2],["Ուրուգվայ",-59,-35,-53,-30],["Պարագվայ",-63,-28,-54,-19],
+  ["Ալժիր",-9,19,12,37],["Մարոկկո",-13,21,-1,36],["Եգիպտոս",25,22,36,32],
+  ["Լիբիա",10,19,25,34],["Նիգերիա",3,4,15,14],["Գանա",-3,5,2,11],["Սուդան",22,8,38,23],
+  ["Եթովպիա",33,4,48,15],["Քենիա",34,-5,42,5],["Տանզանիա",29,-12,40,0],
+  ["Հարավային Աֆրիկա",16,-35,33,-22],["Մադագասկար",43,-26,51,-12],
+  ["Ֆրանսիա",-5,42,8,51],["Իսպանիա",-10,36,4,44],["Պորտուգալիա",-10,37,-6,42],
+  ["Միացյալ Թագավորություն",-8,50,2,59],["Իռլանդիա",-11,51,-6,56],["Գերմանիա",5,47,15,55],
+  ["Իտալիա",7,37,19,47],["Նորվեգիա",4,58,31,71],["Շվեդիա",11,55,24,69],
+  ["Ֆինլանդիա",20,59,32,70],["Լեհաստան",14,49,24,55],["Ուկրաինա",22,45,41,52],
+  ["Ռումինիա",20,43,29,49],["Հունաստան",19,35,28,42],["Թուրքիա",26,36,45,42],
+  ["Ռուսաստան",30,42,180,75],["Ղազախստան",46,40,87,56],["Վրաստան",40,41,47,44],
+  ["Հայաստան",43.4,38.8,46.7,41.3],["Ադրբեջան",44,38,51,42],["Իրան",44,25,63,40],
+  ["Իրաք",38,29,49,37],["Սաուդյան Արաբիա",34,16,56,33],["Հնդկաստան",68,7,97,36],
+  ["Չինաստան",74,18,135,54],["Մոնղոլիա",87,41,120,52],["Ճապոնիա",129,31,146,45],
+  ["Հարավային Կորեա",126,34,130,39],["Հյուսիսային Կորեա",124,37,130,43],
+  ["Թաիլանդ",97,6,106,21],["Վիետնամ",102,8,110,24],["Ինդոնեզիա",95,-11,141,6],
+  ["Ավստրալիա",113,-44,154,-10],["Նոր Զելանդիա",166,-48,179,-34],
+  ["Պապուա Նոր Գվինեա",140,-11,156,-1]
+];
 
-const geoAliases = {
-  "United States of America":"ԱՄՆ","Russia":"Ռուսաստան","Türkiye":"Թուրքիա","Turkey":"Թուրքիա",
-  "Armenia":"Հայաստան","Azerbaijan":"Ադրբեջան","Georgia":"Վրաստան","Iran":"Իրան","Iraq":"Իրաք",
-  "China":"Չինաստան","India":"Հնդկաստան","Japan":"Ճապոնիա","Germany":"Գերմանիա","France":"Ֆրանսիա",
-  "Italy":"Իտալիա","Spain":"Իսպանիա","United Kingdom":"Միացյալ Թագավորություն","Canada":"Կանադա",
-  "Mexico":"Մեքսիկա","Brazil":"Բրազիլիա","Australia":"Ավստրալիա"
-};
-
-function featureCountryName(feature){
-  const p=feature.properties||{};
-  return geoAliases[p.ADMIN]||geoAliases[p.NAME_EN]||geoAliases[p.NAME]||p.ADMIN||p.NAME_EN||p.NAME;
+function esc(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+function project(lon,lat,w,h){
+  const x=(lon+180)/360*w;
+  const y=(90-lat)/180*h;
+  return [x,y];
 }
-
-function normalStyle(){
-  return {color:"#777",weight:0.8,fillColor:"#9b3d2e",fillOpacity:0.04};
+function drawMap(){
+  if(!mapEl) return;
+  const w=1200,h=600;
+  const shapes=mapCountries.map(([name,x1,y1,x2,y2])=>{
+    const [px1,py2]=project(x1,y1,w,h),[px2,py1]=project(x2,y2,w,h);
+    const x=Math.min(px1,px2),y=Math.min(py1,py2),rw=Math.max(4,Math.abs(px2-px1)),rh=Math.max(4,Math.abs(py2-py1));
+    return `<g class="map-country" data-country="${esc(name)}"><rect x="${x}" y="${y}" width="${rw}" height="${rh}" rx="3"></rect><title>${esc(name)}</title></g>`;
+  }).join("");
+  mapEl.innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Աշխարհի ինտերակտիվ քարտեզ">
+    <rect class="map-ocean" x="0" y="0" width="${w}" height="${h}"></rect>
+    <g class="graticule"><path d="M0 300H1200M0 200H1200M0 400H1200M300 0V600M600 0V600M900 0V600"></path></g>
+    <g>${shapes}</g>
+  </svg>`;
+  mapEl.querySelectorAll(".map-country").forEach(el=>el.addEventListener("click",()=>selectMapCountry(el.dataset.country,el)));
 }
-function selectedStyle(){
-  return {color:"#7d2f23",weight:2,fillColor:"#9b3d2e",fillOpacity:0.45};
-}
-function chooseFeature(layer, feature){
-  const name=featureCountryName(feature);
-  if(selectedLayer) selectedLayer.setStyle(normalStyle());
-  selectedLayer=layer;
-  layer.setStyle(selectedStyle());
+function selectMapCountry(name,el){
+  mapEl.querySelectorAll(".map-country.selected").forEach(x=>x.classList.remove("selected"));
+  if(el) el.classList.add("selected");
+  mapStatus.textContent=name;
   selectCountry(name);
-  const bounds=layer.getBounds();
-  if(bounds.isValid()) map.fitBounds(bounds.pad(0.35),{maxZoom:7,animate:true});
 }
-
-fetch("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson")
-  .then(r=>{if(!r.ok) throw new Error("Country boundaries unavailable");return r.json();})
-  .then(geojson=>{
-    countryLayer=L.geoJSON(geojson,{
-      style:normalStyle,
-      onEachFeature:(feature,layer)=>{
-        layer.on({
-          mouseover:()=>{if(layer!==selectedLayer) layer.setStyle({color:"#333",weight:1.4,fillColor:"#9b3d2e",fillOpacity:0.15});},
-          mouseout:()=>{if(layer!==selectedLayer) layer.setStyle(normalStyle());},
-          click:()=>chooseFeature(layer,feature)
-        });
-      }
-    }).addTo(map);
-  })
-  .catch(err=>{
-    console.error(err);
-    const status=document.querySelector("#map-status");
-    if(status) status.textContent="Քարտեզը բեռնվեց, սահմանները՝ ժամանակավորապես անհասանելի";
-  });
-
-const originalSelectCountry = selectCountry;
-selectCountry = function(n){
-  originalSelectCountry(n);
-  if(!countryLayer) return;
-  countryLayer.eachLayer(layer=>{
-    const name=featureCountryName(layer.feature);
-    if(name===n){
-      if(selectedLayer) selectedLayer.setStyle(normalStyle());
-      selectedLayer=layer;
-      layer.setStyle(selectedStyle());
-      const bounds=layer.getBounds();
-      if(bounds.isValid()) map.fitBounds(bounds.pad(0.35),{maxZoom:7,animate:true});
-    }
-  });
-};
-map.whenReady(()=>setTimeout(()=>map.invalidateSize(),150));
+drawMap();
+window.addEventListener("resize",drawMap);
