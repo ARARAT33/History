@@ -190,22 +190,22 @@ function languageTabHtml(entity,cd,lang,ethnic,religions){
  const descHtml=desc?'<div class="description-block"><span>'+esc(meta.description||"Description")+'</span><p>'+esc(desc)+'</p></div>':"";
  return '<section class="lang-pane" data-lang-pane="'+esc(lang)+'"><div class="facts-grid">'+cards+'</div>'+descHtml+'<div class="mini-data-section"><div class="section-kicker">'+esc(meta.peoples||"Peoples")+'</div>'+ethnic+'</div><div class="mini-data-section"><div class="section-kicker">'+esc(meta.religions||"Religions")+'</div>'+religions+'</div></section>';
 }
-function ethnicRows(rows,lang){
+function ethnicRows(rows,lang,entities){
  const seen=new Set();
  return rows.map(x=>{
    const id=x.ethnic?.value?.split("/").pop()||""; if(!id||seen.has(id))return ""; seen.add(id);
-   const n=x.ethnicLabel?.value||id;
+   const n=valueLabel(entities,id,lang)||x.ethnicLabel?.value||""; if(!n)return "";
    const pct=x.value?.value!=null?(Number(x.value.value)*100).toFixed(2).replace(/\.?0+$/,"")+"%":"";
    const d=x.date?.value?claimDate({qualifiers:{P585:[{datavalue:{value:x.date.value}}]}}):"";
    const period=x.periodLabel?.value?x.periodLabel.value:"";
    return '<button type="button" class="people-row" data-people-id="'+esc(id)+'" data-people-name="'+esc(n)+'"><span><strong>'+esc(n)+'</strong><small>'+([pct,d,period].filter(Boolean).map(esc).join(" · ")||"Տվյալների մանրամասներ")+'</small></span><b>→</b></button>';
  }).join("")||'<div class="empty-data">Այս լեզվով կառուցվածքային ազգաբանական տվյալներ չկան։</div>';
 }
-function religionRows(rows,lang){
+function religionRows(rows,lang,entities){
  const seen=new Set();
  return rows.map(x=>{
    const id=x.religion?.value?.split("/").pop()||""; if(!id||seen.has(id))return ""; seen.add(id);
-   const n=x.religionLabel?.value||id;
+   const n=valueLabel(entities,id,lang)||x.religionLabel?.value||""; if(!n)return "";
    const pct=x.value?.value!=null?(Number(x.value.value)*100).toFixed(2).replace(/\.?0+$/,"")+"%":"";
    const d=x.date?.value?formatYear(yearOf(x.date.value)):"";
    return '<div class="simple-row"><span><strong>'+esc(n)+'</strong><small>'+([pct,d].filter(Boolean).map(esc).join(" · ")||"")+'</small></span></div>';
@@ -233,10 +233,12 @@ async function renderCountry(mapName,displayName,iso){
    const cd=await buildCountryData(entity);
    const qid=entity.id;
    const comm=await communityData(qid);
+   const peopleIds=[...new Set([...comm.ethnic.map(x=>x.ethnic?.value?.split("/").pop()),...comm.religions.map(x=>x.religion?.value?.split("/").pop())].filter(Boolean))];
+   const peopleLinked=await getEntities(peopleIds,[...new Set(["hy","en","ru",...cd.target])]);
    const languages=[...new Set(["hy","en","ru",...cd.target])].filter(l=>entityLabel(entity,l));
    const defaultLang=languages.includes("hy")?"hy":languages.includes("en")?"en":languages[0];
    const tabs=languages.map(lang=>'<button type="button" class="lang-tab '+(lang===defaultLang?"active":"")+'" data-lang-tab="'+esc(lang)+'">'+esc(UI_LANG_NAMES[lang]||lang.toUpperCase())+'</button>').join("");
-   const panes=languages.map(lang=>languageTabHtml(entity,cd,lang,ethnicRows(comm.ethnic,lang),religionRows(comm.religions,lang))).join("");
+   const panes=languages.map(lang=>languageTabHtml(entity,cd,lang,ethnicRows(comm.ethnic,lang,peopleLinked),religionRows(comm.religions,lang,peopleLinked))).join("");
    const officialNames=cd.officialIds.map(id=>valueLabel(cd.linked,id,"hy")||valueLabel(cd.linked,id,"en")).filter(Boolean);
    panel.innerHTML='<div class="country-hero"><div class="country-hero-title"><span class="flag-badge">'+esc(isoFlag(iso))+'</span><div><div class="eyebrow">COUNTRY · '+esc(qid)+'</div><h3>'+esc(entityLabel(entity,defaultLang)||displayName||mapName)+'</h3><p>'+esc(displayName||mapName)+(officialNames.length?' · '+esc(officialNames.join(", ")):"")+'</p></div></div><a class="ghost-link" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Wikidata ↗</a></div><div class="language-tabs">'+tabs+'</div><div class="language-panes">'+panes+'</div>'+sourceBadges()+'<div class="history-inspector" id="history-inspector"><div class="inspector-placeholder"><span>✦</span><strong>Ընտրիր ժողովրդի անունը</strong><p>Քարտեզում կերևան նրա հայտնի պատմական բնակության վայրերը։</p></div></div><div class="history-legend"><span><i class="legend-red"></i>Պատմական տարածք / տեղադրություն</span><span><i class="legend-gray"></i>Տվյալների որակի նշում</span></div>';
    panel.querySelectorAll("[data-lang-tab]").forEach(b=>b.addEventListener("click",()=>activateLanguage(panel,b.dataset.langTab)));
