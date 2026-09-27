@@ -25,3 +25,5 @@ body{font-size:calc(1rem * var(--reader-scale)/100)}
 .reader-tools select,.reader-tools button{font:inherit;color:#fff;background:#35302d;border:1px solid #ffffff35;border-radius:8px;padding:6px 8px}
 .reader-tools button{cursor:pointer;font-weight:700}.reader-tools button:hover,.reader-tools select:focus{background:#514842}
 @media(max-width:650px){.reader-tools{justify-content:flex-start;gap:7px}.reader-tools label{font-size:10px}.reader-tools select{max-width:135px}}
+
+.history-global-footer{margin-top:40px;padding:22px 28px;border-top:1px solid #ffffff18;background:#151312;color:#ddd;display:flex;justify-content:space-between;gap:20px;align-items:center;font:12px system-ui}.history-global-footer>div{display:flex;gap:12px;align-items:center}.history-global-footer strong{color:#fff;letter-spacing:.14em}.history-global-footer span{color:#999}.history-global-footer nav{display:flex;gap:16px;flex-wrap:wrap}.history-global-footer a{color:#ddd;text-decoration:none}.history-global-footer a:hover{color:#fff}@media(max-width:700px){.history-global-footer{flex-direction:column;align-items:flex-start}}
