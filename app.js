@@ -609,9 +609,6 @@ function initWorldMap(){
      layer.bindTooltip(n,{sticky:true,direction:"top",opacity:.94});
    }}).addTo(leafletMap);
    leafletMap.fitBounds([[-58,-180],[82,180]],{padding:[10,10]});
-   document.querySelector("#map-zoom-in")?.addEventListener("click",()=>leafletMap.zoomIn());
-   document.querySelector("#map-zoom-out")?.addEventListener("click",()=>leafletMap.zoomOut());
-   document.querySelector("#map-reset")?.addEventListener("click",resetMap);
  }).catch(err=>{mapEl.innerHTML='<div class="map-error">Map data could not be loaded.</div>';console.error(err)});
 }
 document.body.classList.add("map-only-page");
