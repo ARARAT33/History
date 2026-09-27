@@ -614,3 +614,15 @@ function initWorldMap(){
 document.body.classList.add("map-only-page");
 initWorldMap();
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>initExplorer());else initExplorer();
+
+(function bindMapZoomControls(){
+ const bind=()=>{
+  if(!leafletMap)return false;
+  const zin=document.getElementById("map-zoom-in"),zout=document.getElementById("map-zoom-out"),reset=document.getElementById("map-reset");
+  if(zin&&!zin.dataset.zoomBound){zin.dataset.zoomBound="1";zin.addEventListener("click",()=>leafletMap.zoomIn());}
+  if(zout&&!zout.dataset.zoomBound){zout.dataset.zoomBound="1";zout.addEventListener("click",()=>leafletMap.zoomOut());}
+  if(reset&&!reset.dataset.zoomBound){reset.dataset.zoomBound="1";reset.addEventListener("click",()=>resetMap());}
+  return Boolean(zin&&zout&&reset);
+ };
+ if(!bind()){const t=setInterval(()=>{if(bind())clearInterval(t)},100);setTimeout(()=>clearInterval(t),10000)}
+})();
