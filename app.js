@@ -459,8 +459,9 @@ async function renderExplorer(){
  const list=document.querySelector("#history-entity-list"),ins=document.querySelector("#history-inspector");
  if(!list)return;
  const term=document.querySelector("#history-entity")?.value.trim()||"";
- const y=Number(document.querySelector("#history-year")?.value||2026);
- explorerYear=Number.isFinite(y)?y:2026;
+ const parsedYear=parseHistoricalDateInput(document.querySelector("#history-year")?.value||2026);
+ const y=parsedYear==null?2026:parsedYear;
+ explorerYear=y;
  list.innerHTML='<div class="inspector-placeholder">Loading '+esc(explorerMode)+'…</div>';
  clearExplorerLayers();
  let rows=await explorerSearch(explorerMode,term);
@@ -538,16 +539,37 @@ async function selectExplorerEntity(qid,name){
  const period=(start!=null||finish!=null)?(start!=null&&finish!=null?formatYear(start)+" — "+formatYear(finish):start!=null?formatYear(start)+" — Present":"Until "+formatYear(finish)):"Period not recorded";
  ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(entity?.descriptions?.en?.value||"No English description available.")+'</p><div class="history-facts"><div class="history-fact"><span>Mode</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Selected date</span><strong>'+esc(formatYear(explorerYear))+'</strong></div><div class="history-fact"><span>Entity period</span><strong>'+esc(period)+'</strong></div><div class="history-fact"><span>Mapped locations</span><strong>'+esc(String(locations.length))+'</strong></div></div><div class="history-sources"><a href="https://www.wikidata.org/wiki/'+encodeURIComponent(resolvedQid||qid)+'" target="_blank" rel="noopener">Open Wikidata source ↗</a></div>';
 }
-async function initExplorer(){
+async function parseHistoricalDateInput(value){
+ const raw=String(value??"").trim();
+ if(!raw)return 2026;
+ const direct=Number(raw.replace(/,/g,""));
+ if(Number.isFinite(direct))return Math.round(direct);
+ const m=raw.match(/^(?:the\s*)?(\d{1,4})(?:st|nd|rd|th)?\s*century(?:\s*(BCE|BC|CE|AD))?$/i);
+ if(m){
+   const c=Math.max(1,Number(m[1]));
+   const era=(m[2]||"CE").toUpperCase();
+   const year=(c-1)*100+50;
+   return (era==="BCE"||era==="BC")?-year:year;
+ }
+ return null;
+}
+function formatExplorerDateInput(y){
+ if(y<0){
+   const c=Math.max(1,Math.ceil(Math.abs(y)/100));
+   return c+"th century BCE";
+ }
+ return String(y);
+}
+function initExplorer(){
  const root=document.querySelector("#history-explorer");if(!root)return;
  if(window.__historyMapReady){try{await window.__historyMapReady}catch(_){}}
 
  document.querySelectorAll(".explorer-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".explorer-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");explorerMode=b.dataset.mode;renderExplorer()}));
  const slider=document.querySelector("#history-slider"),year=document.querySelector("#history-year"),cur=document.querySelector("#history-current");
  let explorerTimer=null; slider?.addEventListener("input",()=>{year.value=slider.value;cur.textContent=slider.value;clearTimeout(explorerTimer);explorerTimer=setTimeout(renderExplorer,220)});
- year?.addEventListener("change",()=>{slider.value=year.value;cur.textContent=year.value});
+ year?.addEventListener("change",()=>{const parsed=parseHistoricalDateInput(year.value);if(parsed==null){year.value=String(explorerYear);return}explorerYear=parsed;year.value=String(parsed);slider.min="-5000";slider.max="2026";slider.value=String(Math.max(-5000,Math.min(2026,parsed)));cur.textContent=formatExplorerDateInput(parsed);renderExplorer()});
  document.querySelector("#history-apply")?.addEventListener("click",renderExplorer);
- document.querySelector("#history-now")?.addEventListener("click",()=>{year.value=2026;slider.value=2026;cur.textContent="2026";renderExplorer()});
+ document.querySelector("#history-now")?.addEventListener("click",()=>{year.value="2026";slider.value=2026;cur.textContent="2026";explorerYear=2026;renderExplorer()});
  renderExplorer();
 }
 function initWorldMap(){
