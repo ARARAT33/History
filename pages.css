@@ -14,3 +14,14 @@
 .mini-info{margin-top:12px}.search-result{display:grid;grid-template-columns:80px 1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid var(--pg-line);border-radius:16px;padding:10px}.search-result img{width:80px;height:60px;object-fit:cover;border-radius:10px;background:#eee}.search-result h3{margin:0 0 4px;font-size:13px}.search-result p{margin:0;color:var(--pg-muted);font-size:9px;line-height:1.45}.search-result a{font-size:9px;color:var(--pg-accent);text-decoration:none}
 @media(max-width:1150px){.paper-grid,.source-grid,.link-grid{grid-template-columns:repeat(2,1fr)}.results-grid{grid-template-columns:repeat(3,1fr)}.media-grid{grid-template-columns:repeat(3,1fr)}.map-page-layout{grid-template-columns:1fr}.country-data-panel{height:auto;min-height:320px}}
 @media(max-width:760px){.site-nav{padding:0 12px}.nav-more{display:none}.page-hero{padding:40px 15px 32px}.page-main{padding:0 15px 50px}.hero-grid,.paper-grid,.source-grid,.link-grid,.results-grid,.media-grid{grid-template-columns:1fr}.timeline-card{grid-template-columns:1fr;gap:5px}.stat-pill-grid{grid-template-columns:1fr 1fr}.country-map-box{height:55vh;min-height:380px}.country-data-panel{min-height:0}.country-table th:nth-child(3),.country-table td:nth-child(3),.country-table th:nth-child(4),.country-table td:nth-child(4){display:none}.map-page-layout{display:block}}
+/* Persistent reader controls */
+:root{--reader-scale:100%}
+body{font-size:calc(1rem * var(--reader-scale)/100)}
+[data-reader-font="serif"] body{font-family:Georgia,"Times New Roman",serif!important}
+[data-reader-font="sans"] body{font-family:Arial,Helvetica,sans-serif!important}
+[data-reader-font="dyslexic"] body{font-family:Verdana,Tahoma,sans-serif!important;letter-spacing:.015em;line-height:1.65}
+.reader-tools{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:8px 20px;background:#211e1c;color:#fff;border-top:1px solid #ffffff18}
+.reader-tools label{display:flex;align-items:center;gap:5px;font-size:11px;color:#eee}
+.reader-tools select,.reader-tools button{font:inherit;color:#fff;background:#35302d;border:1px solid #ffffff35;border-radius:8px;padding:6px 8px}
+.reader-tools button{cursor:pointer;font-weight:700}.reader-tools button:hover,.reader-tools select:focus{background:#514842}
+@media(max-width:650px){.reader-tools{justify-content:flex-start;gap:7px}.reader-tools label{font-size:10px}.reader-tools select{max-width:135px}}
