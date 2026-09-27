@@ -431,7 +431,7 @@ async function explorerSearch(mode,term){
  if(mode==="states" && geoLayer){
    const features=geoLayer.getLayers().map(layer=>layer.feature).filter(Boolean);
    const filtered=clean?features.filter(f=>String(f.properties?.name||"").toLowerCase().includes(clean.toLowerCase())):features;
-   return filtered.slice(0,80).map(f=>({item:{value:"http://www.wikidata.org/entity/"+(f.properties?.iso||"")},itemLabel:{value:f.properties?.name||"Unknown"},coord:null,geo:null,inception:null,extinction:null,iso:{value:f.properties?.iso||""}}));
+   return filtered.slice(0,80).map(f=>({item:{value:"http://www.wikidata.org/entity/"+(f.properties?.iso||"")},itemLabel:{value:f.properties?.name||"Unknown"},coord:null,geo:null,inception:null,extinction:null,iso:{value:f.properties?.iso||f.properties?.ISO_A3||f.properties?.ISO_A2||""}}));
  }
  if(clean){
    const ids=await searchQids(clean,"en");
@@ -486,51 +486,6 @@ async function renderExplorer(){
  list.querySelectorAll(".explore-select").forEach(b=>b.addEventListener("click",()=>selectExplorerEntity(b.dataset.qid,b.dataset.name)));
  if(ins)ins.innerHTML='<div class="inspector-placeholder"><strong>'+rows.length+'</strong> records for <strong>'+esc(explorerMode)+'</strong> in <strong>'+esc(String(explorerYear))+'</strong>. Select an entity to show its historical locations on the map.</div>';
 }
-async function selectExplorerEntity(qid,name){
- const ins=document.querySelector("#history-inspector");if(!ins||!leafletMap)return;
- ins.innerHTML='<div class="inspector-placeholder">Loading '+esc(name)+' locations…</div>';
- clearExplorerLayers();
- const resolvedQid=explorerMode==="states"&&!/^Q\\d+$/.test(qid)?await findQidByIso(qid):qid;\n const entity=resolvedQid?(await getEntities([resolvedQid],["en"]))[resolvedQid]||null:null;
- const inception=entity?prop(entity.claims,"P571")[0]?.mainsnak?.datavalue?.value:null;
- const extinction=entity?prop(entity.claims,"P576")[0]?.mainsnak?.datavalue?.value:null;
- const locations=await explorerLocations(qid,explorerMode,explorerYear);
- window.__explorerGroup=L.layerGroup().addTo(leafletMap);
-
- if(explorerMode==="states"){
-   const geoRows=entity?.claims?.P3896||[];
-   const coord=entity?.claims?.P625?.[0]?.mainsnak?.datavalue?.value;
-   if(coord?.latitude!=null)L.circleMarker([coord.latitude,coord.longitude],{radius:8,weight:2,fillOpacity:.85}).bindTooltip(name).addTo(window.__explorerGroup);
-   for(const st of geoRows.slice(0,3)){
-     const snak=st?.mainsnak?.datavalue?.value;
-     if(!snak)continue;
-     try{const g=await commonsMapGeoJSON(snak);if(g)L.geoJSON(g,{style:{color:"#d76545",weight:2,fillColor:"#d76545",fillOpacity:.25}}).bindTooltip(name).addTo(window.__explorerGroup)}catch(_){}
-   }
- } else {
-   const wanted=new Set();
-   locations.forEach(r=>{const iso=String(r.iso?.value||"").toUpperCase();if(iso)wanted.add(iso)});
-   if(wanted.size&&geoLayer){
-     geoLayer.eachLayer(layer=>{
-       const iso=String(layer.feature?.properties?.iso||layer.feature?.properties?.ISO_A3||"").toUpperCase();
-       if(wanted.has(iso))styleLayer(layer,{color:"#8d251d",weight:2.4,fillColor:"#d76545",fillOpacity:.72});
-       else styleLayer(layer,countryStyle(layer.feature));
-     });
-   }
-   locations.forEach(r=>{
-     const country=r.countryLabel?.value||r.iso?.value||"";
-     const iso=String(r.iso?.value||"").toUpperCase();
-     if(iso&&geoLayer){
-       geoLayer.eachLayer(layer=>{
-         const li=String(layer.feature?.properties?.iso||"").toUpperCase();
-         if(li===iso)layer.bindTooltip(name+" · "+country,{sticky:true});
-       });
-     }
-   });
- }
-
- const start=yearOf(inception),end=yearOf(extinction);
- const period=(start!=null||end!=null)?(start!=null&&end!=null?formatYear(start)+" — "+formatYear(end):start!=null?formatYear(start)+" — Present":"Until "+formatYear(end)):"Period not recorded";
- ins.innerHTML='<div class="history-facts"><div class="history-fact"><span>Entity</span><strong>'+esc(name)+'</strong></div><div class="history-fact"><span>Mode</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Selected year</span><strong>'+esc(String(explorerYear))+'</strong></div><div class="history-fact"><span>Entity period</span><strong>'+esc(period)+'</strong></div><div class="history-fact"><span>Mapped countries</span><strong>'+esc(String(locations.length))+'</strong></div></div><div class="history-sources"><a href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Open Wikidata source ↗</a></div>';
-}
 async function explorerLocations(qid,mode,year){
  let q="";
  if(mode==="peoples")q='SELECT ?country ?countryLabel ?iso ?start ?end WHERE {?country wdt:P297 ?iso. ?country p:P172 ?st. ?st ps:P172 wd:'+qid+'. OPTIONAL{?st pq:P580 ?start.} OPTIONAL{?st pq:P582 ?end.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
@@ -551,29 +506,37 @@ function highlightExplorerCountries(rows){
  return wanted.size;
 }
 async function selectExplorerEntity(qid,name){
- const ins=document.querySelector("#history-inspector");if(!ins)return;
+ const ins=document.querySelector("#history-inspector");if(!ins||!leafletMap)return;
  ins.innerHTML='<div class="inspector-placeholder">Loading '+esc(name)+'…</div>';
- const e=(await getEntities([qid],["en","hy","ru"]))[qid]||{},cl=e.claims||{};
- const inception=prop(cl,"P571")[0]?.mainsnak?.datavalue?.value,extinction=prop(cl,"P576")[0]?.mainsnak?.datavalue?.value;
- const desc=e.descriptions?.en?.value||"No English description available.",coords=prop(cl,"P625")[0]?.mainsnak?.datavalue?.value;
- const y=Number(document.querySelector("#history-year")?.value||2026);
- const locRows=await explorerLocations(qid,explorerMode,y),countryCount=highlightExplorerCountries(locRows);
- let extra="";
- if(explorerMode==="languages"){
-   const familyIds=prop(cl,"P279").map(claimId).filter(Boolean),fe=await getEntities(familyIds,["en"]);
-   const families=familyIds.map(id=>fe[id]?.labels?.en?.value).filter(Boolean);
-   const speakers=prop(cl,"P1098").map(claimNumber).filter(x=>x!=null);
-   extra='<div class="history-facts"><div class="history-fact"><span>Language family / parent</span><strong>'+esc(families.join(", ")||"Not recorded")+'</strong></div><div class="history-fact"><span>Recorded speakers</span><strong>'+esc(speakers.length?formatNumber(speakers[speakers.length-1]):"Not recorded")+'</strong></div><div class="history-fact"><span>Countries / territories</span><strong>'+countryCount+'</strong></div></div>';
- }else if(explorerMode==="peoples"){
-   extra='<div class="history-facts"><div class="history-fact"><span>Countries linked in structured data</span><strong>'+countryCount+'</strong></div><div class="history-fact"><span>Historical location records</span><strong>'+locRows.length+'</strong></div></div>';
- }else if(explorerMode==="animals"){
-   extra='<div class="history-facts"><div class="history-fact"><span>Recorded range areas</span><strong>'+locRows.length+'</strong></div><div class="history-fact"><span>Extinction / end record</span><strong>'+esc(extinction?formatYear(yearOf(extinction)):"Not recorded")+'</strong></div></div>';
+ clearExplorerLayers();
+ const resolvedQid=explorerMode==="states"&&!/^Q\\d+$/.test(qid)?await findQidByIso(qid):qid;
+ const entity=resolvedQid?(await getEntities([resolvedQid],["en","hy","ru"]))[resolvedQid]||null:null;
+ const cl=entity?.claims||{};
+ const inception=prop(cl,"P571")[0]?.mainsnak?.datavalue?.value||null;
+ const extinction=prop(cl,"P576")[0]?.mainsnak?.datavalue?.value||null;
+ const locations=await explorerLocations(resolvedQid||qid,explorerMode,explorerYear);
+ window.__explorerGroup=L.layerGroup().addTo(leafletMap);
+ if(explorerMode==="states"){
+   const coord=prop(cl,"P625")[0]?.mainsnak?.datavalue?.value;
+   if(coord?.latitude!=null)L.circleMarker([coord.latitude,coord.longitude],{radius:9,weight:2,fillOpacity:.9}).bindTooltip(name,{sticky:true}).addTo(window.__explorerGroup);
+   for(const st of prop(cl,"P3896").slice(0,3)){
+     const snak=st?.mainsnak?.datavalue?.value;if(!snak)continue;
+     try{const g=await commonsMapGeoJSON(snak);if(g)L.geoJSON(g,{style:{color:"#d76545",weight:2,fillColor:"#d76545",fillOpacity:.25}}).bindTooltip(name,{sticky:true}).addTo(window.__explorerGroup)}catch(_){}
+   }
  }else{
-   extra='<div class="history-facts"><div class="history-fact"><span>Map geometry</span><strong>Country geometry</strong></div><div class="history-fact"><span>Historical boundary certainty</span><strong>Source-dependent</strong></div></div>';
+   const wanted=new Set(locations.map(r=>String(r.iso?.value||"").toUpperCase()).filter(Boolean));
+   if(geoLayer)geoLayer.eachLayer(layer=>{
+     const iso=String(layer.feature?.properties?.iso||layer.feature?.properties?.ISO_A3||layer.feature?.properties?.ISO_A2||"").toUpperCase();
+     if(wanted.has(iso)){
+       styleLayer(layer,{color:"#8d251d",weight:2.4,fillColor:"#d76545",fillOpacity:.72});
+       const center=layer.getBounds?.().getCenter?.();
+       if(center)L.circleMarker([center.lat,center.lng],{radius:7,weight:2,fillOpacity:.95}).bindTooltip(name+" · "+(layer.feature?.properties?.name||iso),{sticky:true}).addTo(window.__explorerGroup);
+     }else if(layer!==selectedLayer)styleLayer(layer,countryStyle(layer.feature));
+   });
  }
- const timelineStart=inception?yearOf(inception):-5000,timelineEnd=extinction?yearOf(extinction):2026;
- const slider=document.querySelector("#history-slider"),yearInput=document.querySelector("#history-year"),current=document.querySelector("#history-current"); if(slider){slider.min=String(Math.min(timelineStart,2026));slider.max=String(Math.max(timelineEnd,2026));slider.value=String(y);if(current)current.textContent=String(y);if(yearInput)yearInput.value=String(y)}
- ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(desc)+'</p>'+extra+'<div class="history-facts"><div class="history-fact"><span>Origin / inception</span><strong>'+esc(inception?formatYear(yearOf(inception)):"Unknown")+'</strong></div><div class="history-fact"><span>End / extinction</span><strong>'+esc(extinction?formatYear(yearOf(extinction)):"Not recorded")+'</strong></div><div class="history-fact"><span>Timeline</span><strong>'+esc(formatYear(timelineStart))+' → '+esc(formatYear(timelineEnd))+'</strong></div><div class="history-fact"><span>Coordinates</span><strong>'+esc(coords||"Not recorded")+'</strong></div></div><div class="history-sources">Structured data: <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'">Wikidata '+esc(qid)+'</a>. Time filters use statement qualifiers where available; missing historical boundaries are not invented.</div>';
+ const start=yearOf(inception),finish=yearOf(extinction);
+ const period=(start!=null||finish!=null)?(start!=null&&finish!=null?formatYear(start)+" — "+formatYear(finish):start!=null?formatYear(start)+" — Present":"Until "+formatYear(finish)):"Period not recorded";
+ ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(entity?.descriptions?.en?.value||"No English description available.")+'</p><div class="history-facts"><div class="history-fact"><span>Mode</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Selected date</span><strong>'+esc(formatYear(explorerYear))+'</strong></div><div class="history-fact"><span>Entity period</span><strong>'+esc(period)+'</strong></div><div class="history-fact"><span>Mapped locations</span><strong>'+esc(String(locations.length))+'</strong></div></div><div class="history-sources"><a href="https://www.wikidata.org/wiki/'+encodeURIComponent(resolvedQid||qid)+'" target="_blank" rel="noopener">Open Wikidata source ↗</a></div>';
 }
 function initExplorer(){
  const root=document.querySelector("#history-explorer");if(!root)return;
@@ -603,4 +566,4 @@ function initWorldMap(){
 }
 document.body.classList.add("map-only-page");
 initWorldMap();
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(initExplorer,0));else setTimeout(initExplorer,0);
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>initExplorer());else initExplorer();
