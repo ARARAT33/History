@@ -31,7 +31,7 @@ function selectionMenu(){
   if(b.dataset.action==="source"){
    const sel=getSelection(),node=sel?.anchorNode?.parentElement,link=node?.closest?.("a[href]");
    if(link?.href)open(link.href,"_blank","noopener");
-   else open("https://www.google.com/search?q="+encodeURIComponent(selected)," _blank","noopener");
+   else open("https://www.google.com/search?q="+encodeURIComponent(selected),"_blank","noopener");
   }else{
    const lang=get("language","en");
    open("https://translate.google.com/?sl=auto&tl="+encodeURIComponent(lang)+"&text="+encodeURIComponent(selected)+"&op=translate","_blank","noopener");
