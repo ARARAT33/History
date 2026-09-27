@@ -3,7 +3,7 @@
 <title>History — HISTORY</title><link rel="stylesheet" href="pages.css">
 <style>
 .history-db-wrap{max-width:1280px;margin:auto;padding:22px}.history-db-hero{margin-bottom:18px}
-.history-tools{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}.history-search{flex:1 1 300px;padding:13px 16px;border:1px solid rgba(127,127,127,.25);border-radius:13px;background:rgba(255,255,255,.05);color:inherit;font:inherit}
+.history-tools{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px;padding:12px;border:1px solid rgba(127,127,127,.2);border-radius:16px;background:rgba(255,255,255,.08);position:sticky;top:72px;z-index:20;backdrop-filter:blur(12px)}.history-search{flex:1 1 300px;padding:13px 16px;border:1px solid rgba(127,127,127,.25);border-radius:13px;background:rgba(255,255,255,.05);color:inherit;font:inherit}
 .history-count{padding:12px 4px;opacity:.7}.history-db-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .history-db-card{min-width:0;padding:17px;border:1px solid rgba(127,127,127,.2);border-radius:18px;background:rgba(255,255,255,.035);box-shadow:0 9px 28px rgba(0,0,0,.07);display:flex;flex-direction:column;gap:10px}
 .history-db-card h3{margin:0;font-size:1.12rem;overflow-wrap:anywhere}.history-db-card p{margin:0;line-height:1.55;opacity:.82;overflow-wrap:anywhere}.history-db-id{font:600 .72rem ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.55;overflow-wrap:anywhere}
@@ -13,7 +13,7 @@
 @media(max-width:900px){.history-db-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.history-db-grid{grid-template-columns:1fr}.history-preview iframe.is-website{height:300px}}
 </style></head><body class="page-body"><main class="page-main history-db-wrap">
 <section class="hero-card history-db-hero"><span class="page-kicker">HISTORY DATABASE</span><h1>History</h1><p>Search and explore historical pages from the complete archive databases.</p></section>
-<div class="history-tools"><input id="history-search" class="history-search" type="search" placeholder="Search all history…" aria-label="Search all history"><span id="history-count" class="history-count"></span></div>
+<div class="history-tools"><input id="history-search" class="history-search" type="search" placeholder="Search History — ID, Name, Description, Link, all fields…" aria-label="Search History"><span id="history-count" class="history-count"></span></div>
 <section id="history-db-content" class="history-db-grid"><div class="history-empty">Loading history…</div></section><div id="history-pages" class="history-pages"></div>
 </main>
 <script>
