@@ -1,1 +1,90 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Links — HISTORY</title><link rel="stylesheet" href="pages.css"></head><body class="page-body"><main class="page-main"><div class="source-grid"><article class="source-card"><h3>Wikidata</h3><p>Structured historical entities and relationships.</p><a href="https://www.wikidata.org/" target="_blank" rel="noopener">Open source ↗</a></article><article class="source-card"><h3>Wikimedia Commons</h3><p>Open images, maps and media.</p><a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Open source ↗</a></article><article class="source-card"><h3>Internet Archive</h3><p>Digitized books, scans, websites and media.</p><a href="https://archive.org/" target="_blank" rel="noopener">Open source ↗</a></article><article class="source-card"><h3>OpenStreetMap</h3><p>Open geographic map data.</p><a href="https://www.openstreetmap.org/" target="_blank" rel="noopener">Open source ↗</a></article><article class="source-card"><h3>World Bank</h3><p>International economic indicators.</p><a href="https://data.worldbank.org/" target="_blank" rel="noopener">Open source ↗</a></article><article class="source-card"><h3>UNDP Data Center</h3><p>Human development data and HDI.</p><a href="https://hdr.undp.org/data-center" target="_blank" rel="noopener">Open source ↗</a></article></div></main><script src="site-tools.js?v=20260927-4"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>History — HISTORY</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+.history-db-wrap{max-width:1200px;margin:0 auto;padding:24px}
+.history-db-hero{margin-bottom:24px}
+.history-db-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
+.history-db-card{padding:20px;border:1px solid rgba(127,127,127,.2);border-radius:18px;background:rgba(255,255,255,.035);box-shadow:0 10px 30px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:12px}
+.history-db-card h3{margin:0;font-size:1.15rem;overflow-wrap:anywhere}
+.history-db-card p{margin:0;line-height:1.6;opacity:.82;overflow-wrap:anywhere}
+.history-db-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;opacity:.65;overflow-wrap:anywhere;word-break:break-word}
+.history-db-link{display:block;overflow-wrap:anywhere;word-break:break-word}
+.history-db-link a{font-weight:600}
+.history-db-extra{border-top:1px solid rgba(127,127,127,.16);padding-top:10px;display:grid;gap:7px}
+.history-db-extra div{font-size:.85rem;overflow-wrap:anywhere}
+.history-db-empty,.history-db-error{padding:28px;border:1px dashed rgba(127,127,127,.35);border-radius:18px;text-align:center;opacity:.8}
+</style>
+</head>
+<body class="page-body">
+<main class="page-main history-db-wrap">
+<section class="hero-card history-db-hero">
+<span class="page-kicker">HISTORY DATABASE</span>
+<h1>History</h1>
+<p>Historical pages and records from the AWEArchiveDB database.</p>
+</section>
+<section id="history-db-content" class="history-db-grid" aria-live="polite">
+<div class="history-db-empty">Loading history records…</div>
+</section>
+</main>
+<script>
+(function(){
+"use strict";
+const DATA_URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",\"":"&quot;"}[c]));
+const first=(o,keys)=>{for(const k of keys){if(o&&o[k]!=null&&String(o[k]).trim()!=="")return o[k]}return""};
+const asArray=data=>{
+ if(Array.isArray(data))return data;
+ for(const k of ["items","records","history","pages","data","results"])if(Array.isArray(data?.[k]))return data[k];
+ return [];
+};
+function linkHtml(url){
+ if(!url)return"";
+ const u=String(url).trim();
+ return '<div class="history-db-link"><strong>Link</strong><br><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a></div>';
+}
+function card(item,index){
+ const id=first(item,["id","ID","uuid","identifier"])||("record-"+(index+1));
+ const name=first(item,["name","title","label","pageName","page_name","slug"])||"Untitled";
+ const description=first(item,["description","desc","summary","text"])||"No description provided.";
+ const url=first(item,["link","url","href","source"]);
+ const extras=[];
+ for(const [key,value] of Object.entries(item)){
+  if(["id","ID","uuid","identifier","name","title","label","pageName","page_name","slug","description","desc","summary","text","link","url","href","source"].includes(key))continue;
+  if(value==null||value==="")continue;
+  const rendered=typeof value==="object"?JSON.stringify(value):String(value);
+  extras.push('<div><strong>'+esc(key)+':</strong> '+esc(rendered)+'</div>');
+ }
+ return '<article class="history-db-card"><div class="history-db-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3><p>'+esc(description)+'</p>'+linkHtml(url)+(extras.length?'<div class="history-db-extra">'+extras.join("")+'</div>':"")+'</article>';
+}
+async function load(){
+ const root=document.getElementById("history-db-content");
+ try{
+  const res=await fetch(DATA_URL,{cache:"no-store"});
+  if(!res.ok)throw new Error("HTTP "+res.status);
+  const data=await res.json();
+  const rows=asArray(data).filter(x=>x&&typeof x==="object");
+  root.className="history-db-grid";
+  root.innerHTML=rows.length?rows.map(card).join(""):'<div class="history-db-empty" style="grid-column:1/-1">No history records are currently available in pagehistory.json.</div>';
+ }catch(err){
+  console.error(err);
+  root.className="history-db-grid";
+  root.innerHTML='<div class="history-db-error" style="grid-column:1/-1">History data could not be loaded right now.</div>';
+ }
+}
+load();
+})();
+</script>
+<script src="site-tools.js?v=20260927-4"></script>
+<script>
+(function(){
+ const nav=document.querySelector(".history-nav a[href=\"links.html\"]");
+ if(nav)nav.textContent="History";
+})();
+</script>
+</body>
+</html>
