@@ -1,13 +1,13 @@
 # History
 
-100% ստատիկ պատմության կայք։
+A 100% static history website.
 
-## Կառուցվածք
-- Պետություններ՝ ըստ մայրցամաքների
-- Ազգեր և ժողովուրդներ
-- Նկարներ
-- Տեսանյութեր
-- Փաստաթղթեր
-- Այլ պատմական նյութեր
+## Structure
+- States by continent
+- Nations and peoples
+- Images
+- Videos
+- Documents
+- Other historical materials
 
-Կայքը աշխատում է միայն HTML + CSS-ով և չունի backend, database կամ պարտադիր JavaScript։
+The website runs on HTML and CSS and has no backend, database, or required JavaScript.
