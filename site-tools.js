@@ -1,5 +1,5 @@
 (()=>{"use strict";
-const LANGS=[["English","en"],["Armenian","hy"],["Russian","ru"],["French","fr"],["German","de"],["Spanish","es"],["Italian","it"],["Portuguese","pt"],["Arabic","ar"],["Chinese","zh-CN"],["Japanese","ja"],["Korean","ko"],["Greek","el"],["Turkish","tr"],["Persian","fa"],["Ukrainian","uk"]];
+const LANGS=[["English","en"],["Armenian","hy"],["Russian","ru"],["French","fr"],["German","de"],["Spanish","es"],["Italian","it"],["Portuguese","pt"],["Dutch","nl"],["Polish","pl"],["Czech","cs"],["Slovak","sk"],["Ukrainian","uk"],["Belarusian","be"],["Bulgarian","bg"],["Serbian","sr"],["Croatian","hr"],["Romanian","ro"],["Hungarian","hu"],["Greek","el"],["Turkish","tr"],["Azerbaijani","az"],["Georgian","ka"],["Persian","fa"],["Arabic","ar"],["Hebrew","he"],["Chinese","zh-CN"],["Japanese","ja"],["Korean","ko"],["Hindi","hi"],["Bengali","bn"],["Urdu","ur"],["Indonesian","id"],["Malay","ms"],["Vietnamese","vi"],["Thai","th"],["Swedish","sv"],["Norwegian","no"],["Danish","da"],["Finnish","fi"],["Lithuanian","lt"],["Latvian","lv"],["Estonian","et"],["Latin","la"]];
 const get=(k,d)=>{try{return localStorage.getItem("history-"+k)||d}catch(_){return d}};
 const set=(k,v)=>{try{localStorage.setItem("history-"+k,v)}catch(_){}}; 
 function header(){
