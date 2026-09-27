@@ -1,61 +1,31 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>History — HISTORY</title>
-<link rel="stylesheet" href="pages.css">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>History — HISTORY</title><link rel="stylesheet" href="pages.css">
 <style>
-.history-db-wrap{max-width:1200px;margin:0 auto;padding:24px}
-.history-db-hero{margin-bottom:24px}.history-db-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
-.history-db-card{padding:22px;border:1px solid rgba(127,127,127,.2);border-radius:20px;background:rgba(255,255,255,.035);box-shadow:0 12px 35px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:14px}
-.history-db-card h3{margin:0;font-size:1.25rem;overflow-wrap:anywhere}.history-db-card p{margin:0;line-height:1.65;opacity:.82;overflow-wrap:anywhere}
-.history-db-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.76rem;opacity:.6;overflow-wrap:anywhere}
-.history-db-link{display:block;overflow-wrap:anywhere;word-break:break-word}.history-db-link a{font-weight:600}
-.history-preview{margin-top:4px;padding-top:16px;border-top:1px solid rgba(127,127,127,.16)}
-.history-preview iframe{width:100%;height:430px;border:0;border-radius:14px;background:#111}
-.history-preview video,.history-preview img{display:block;width:100%;max-height:520px;object-fit:contain;border-radius:14px;background:#111}
-.history-preview iframe.is-website{height:520px}
-.history-preview-fallback{padding:20px;border-radius:14px;background:rgba(127,127,127,.08);text-align:center}
-.history-actions{display:flex;flex-wrap:wrap;gap:10px}.history-actions a{display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border-radius:10px;text-decoration:none;border:1px solid rgba(127,127,127,.25)}
-.history-db-extra{border-top:1px solid rgba(127,127,127,.16);padding-top:12px;display:grid;gap:7px}
-.history-db-extra div{font-size:.85rem;overflow-wrap:anywhere}.history-db-empty,.history-db-error{padding:28px;border:1px dashed rgba(127,127,127,.35);border-radius:18px;text-align:center;opacity:.8}
-</style>
-</head>
-<body class="page-body">
-<main class="page-main history-db-wrap">
-<section class="hero-card history-db-hero"><span class="page-kicker">HISTORY DATABASE</span><h1>History</h1><p>Historical pages and records from the AWEArchiveDB database.</p></section>
-<section id="history-db-content" class="history-db-grid" aria-live="polite"><div class="history-db-empty">Loading history records…</div></section>
+.history-db-wrap{max-width:1280px;margin:auto;padding:22px}.history-db-hero{margin-bottom:18px}
+.history-tools{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}.history-search{flex:1 1 300px;padding:13px 16px;border:1px solid rgba(127,127,127,.25);border-radius:13px;background:rgba(255,255,255,.05);color:inherit;font:inherit}
+.history-count{padding:12px 4px;opacity:.7}.history-db-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.history-db-card{min-width:0;padding:17px;border:1px solid rgba(127,127,127,.2);border-radius:18px;background:rgba(255,255,255,.035);box-shadow:0 9px 28px rgba(0,0,0,.07);display:flex;flex-direction:column;gap:10px}
+.history-db-card h3{margin:0;font-size:1.12rem;overflow-wrap:anywhere}.history-db-card p{margin:0;line-height:1.55;opacity:.82;overflow-wrap:anywhere}.history-db-id{font:600 .72rem ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.55;overflow-wrap:anywhere}
+.history-preview{border-top:1px solid rgba(127,127,127,.16);padding-top:10px}.history-preview iframe{display:block;width:100%;height:270px;border:0;border-radius:12px;background:#111}.history-preview video,.history-preview img{display:block;width:100%;max-height:360px;object-fit:contain;border-radius:12px;background:#111}
+.history-preview iframe.is-website{height:330px}.history-actions{display:flex;gap:8px;flex-wrap:wrap}.history-actions a{display:inline-flex;padding:9px 12px;border-radius:10px;text-decoration:none;border:1px solid rgba(127,127,127,.25);font-weight:600}
+.history-db-extra{border-top:1px solid rgba(127,127,127,.16);padding-top:9px;display:grid;gap:5px;font-size:.82rem}.history-empty{grid-column:1/-1;padding:30px;text-align:center;opacity:.7}.history-pages{display:flex;justify-content:center;align-items:center;gap:10px;margin:22px 0}.history-pages button{padding:9px 14px;border:1px solid rgba(127,127,127,.25);border-radius:10px;background:transparent;color:inherit;cursor:pointer}.history-pages button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:900px){.history-db-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.history-db-grid{grid-template-columns:1fr}.history-preview iframe.is-website{height:300px}}
+</style></head><body class="page-body"><main class="page-main history-db-wrap">
+<section class="hero-card history-db-hero"><span class="page-kicker">HISTORY DATABASE</span><h1>History</h1><p>Search and explore historical pages from the complete archive databases.</p></section>
+<div class="history-tools"><input id="history-search" class="history-search" type="search" placeholder="Search all history…" aria-label="Search all history"><span id="history-count" class="history-count"></span></div>
+<section id="history-db-content" class="history-db-grid"><div class="history-empty">Loading history…</div></section><div id="history-pages" class="history-pages"></div>
 </main>
 <script>
-(function(){
-"use strict";
-const DATA_URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json";
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-const first=(o,keys)=>{for(const k of keys){if(o&&o[k]!=null&&String(o[k]).trim()!=="")return o[k]}return""};
-const asArray=data=>{if(Array.isArray(data))return data;for(const k of ["items","records","history","pages","data","results"])if(Array.isArray(data?.[k]))return data[k];return[]};
-const isUrl=v=>/^https?:\/\//i.test(String(v||"").trim());
-function youtubeEmbed(u){try{const x=new URL(u);let id=x.hostname.includes("youtu.be")?x.pathname.slice(1):x.searchParams.get("v");return id?"https://www.youtube.com/embed/"+encodeURIComponent(id):""}catch{return""}}
-function preview(url){
- if(!url)return"";
- const u=String(url).trim(), low=u.toLowerCase(), yt=youtubeEmbed(u);
- if(yt)return '<div class="history-preview"><iframe src="'+esc(yt)+'" title="Video preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
- if(/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(low))return '<div class="history-preview"><video controls playsinline src="'+esc(u)+'"></video></div>';
- if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(low))return '<div class="history-preview"><img src="'+esc(u)+'" alt=""></div>';
- return '<div class="history-preview"><iframe class="is-website" src="'+esc(u)+'" title="Embedded page" loading="lazy"></iframe></div>';
-}
-function card(item,index){
- const id=first(item,["id","ID","uuid","identifier"])||("record-"+(index+1));
- const name=first(item,["name","title","label","pageName","page_name","slug"])||"Untitled";
- const description=first(item,["description","desc","summary","text"])||"No description provided.";
- const url=first(item,["link","url","href","source"]);
- const extras=[];for(const [key,value] of Object.entries(item)){if(["id","ID","uuid","identifier","name","title","label","pageName","page_name","slug","description","desc","summary","text","link","url","href","source"].includes(key)||value==null||value==="")continue;extras.push("<div><strong>"+esc(key)+":</strong> "+esc(typeof value==="object"?JSON.stringify(value):value)+"</div>")}
- return '<article class="history-db-card"><div class="history-db-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3><p>'+esc(description)+'</p>'+preview(isUrl(url)?url:"")+(url?'<div class="history-actions"><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Open in browser ↗</a></div>':"")+(extras.length?'<div class="history-db-extra">'+extras.join("")+"</div>":"")+"</article>";
-}
-async function load(){const root=document.getElementById("history-db-content");try{const res=await fetch(DATA_URL,{cache:"no-store"});if(!res.ok)throw Error("HTTP "+res.status);const rows=asArray(await res.json()).filter(x=>x&&typeof x==="object");root.innerHTML=rows.length?rows.map(card).join(""):'<div class="history-db-empty" style="grid-column:1/-1">No history records are currently available.</div>'}catch(e){console.error(e);root.innerHTML='<div class="history-db-error" style="grid-column:1/-1">History data could not be loaded right now.</div>'}}
-load();
-})();
-</script>
-<script src="site-tools.js?v=20260927-4"></script>
-</body>
-</html>
+(()=>{const URLS=["https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json","https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json"],PAGE=50;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));const first=(o,k)=>{for(const x of k)if(o?.[x]!=null&&String(o[x]).trim())return o[x];return""};
+const arr=x=>Array.isArray(x)?x:["items","records","history","pages","archive","data","results"].flatMap(k=>Array.isArray(x?.[k])?x[k]:[]);
+const yt=u=>{try{let x=new URL(u),id=x.hostname.includes("youtu.be")?x.pathname.slice(1):x.searchParams.get("v");return id?"https://www.youtube.com/embed/"+encodeURIComponent(id):""}catch{return""}};
+const preview=u=>{if(!/^https?:\/\//i.test(String(u||"")))return"";let l=u.toLowerCase(),y=yt(u);if(y)return '<div class="history-preview"><iframe src="'+esc(y)+'" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';if(/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(l))return '<div class="history-preview"><video controls playsinline src="'+esc(u)+'"></video></div>';if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(l))return '<div class="history-preview"><img src="'+esc(u)+'" alt=""></div>';return '<div class="history-preview"><iframe class="is-website" src="'+esc(u)+'" title="Website preview" loading="lazy" allowfullscreen></iframe></div>'};
+let all=[],filtered=[],page=1;const root=document.getElementById("history-db-content"),search=document.getElementById("history-search"),count=document.getElementById("history-count"),pages=document.getElementById("history-pages");
+function card(o,i){let id=first(o,["id","ID","uuid","identifier"])||"record-"+(i+1),name=first(o,["name","title","label","pageName","page_name","slug"])||"Untitled",d=first(o,["description","desc","summary","text"])||"",u=first(o,["link","url","href","source"]);let extra=Object.entries(o).filter(([k,v])=>!["id","ID","uuid","identifier","name","title","label","pageName","page_name","slug","description","desc","summary","text","link","url","href","source"].includes(k)&&v!=null&&v!=="").map(([k,v])=>"<div><b>"+esc(k)+":</b> "+esc(typeof v==="object"?JSON.stringify(v):v)+"</div>").join("");
+return '<article class="history-db-card"><div class="history-db-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3><p>'+esc(d||"No description provided.")+'</p>'+preview(u)+(u?'<div class="history-actions"><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">Open website ↗</a></div>':"")+(extra?'<div class="history-db-extra">'+extra+"</div>":"")+"</article>"}
+function render(){let start=(page-1)*PAGE,rows=filtered.slice(start,start+PAGE);root.innerHTML=rows.length?rows.map(card).join(""):'<div class="history-empty">No matching records.</div>';count.textContent=filtered.length+" results";let n=Math.max(1,Math.ceil(filtered.length/PAGE));pages.innerHTML='<button '+(page<=1?"disabled":"")+' data-p="-1">← Previous</button><span>Page '+page+" / "+n+'</span><button '+(page>=n?"disabled":"")+' data-p="1">Next →</button>';pages.querySelectorAll("button").forEach(b=>b.onclick=()=>{page+=Number(b.dataset.p);render();scrollTo({top:0,behavior:"smooth"})})}
+search.oninput=()=>{let q=search.value.trim().toLowerCase();filtered=all.filter(o=>JSON.stringify(o).toLowerCase().includes(q));page=1;render()};
+Promise.all(URLS.map(u=>fetch(u,{cache:"no-store"}).then(r=>r.ok?r.json():[]))).then(ds=>{all=ds.flatMap(arr).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(()=>root.innerHTML='<div class="history-empty">History data could not be loaded right now.</div>')})();
+</script><script src="site-tools.js?v=20260927-5"></script></body></html>
