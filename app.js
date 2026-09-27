@@ -286,7 +286,7 @@ function focusCountry(layer){
  const mapName=countryName(layer),displayName=aliases[mapName]||mapName;
  if(mapStatus)mapStatus.textContent=displayName;
  renderCountry(mapName,displayName,layer.feature?.properties?.iso);
- window.location.href="search.html?q="+encodeURIComponent(displayName);
+ 
  const b=layer.getBounds();
  if(b?.isValid?.())leafletMap.flyToBounds(b,{paddingTopLeft:[20,20],paddingBottomRight:[430,35],maxZoom:7,duration:.9});
 }
@@ -420,6 +420,54 @@ async function selectPeopleHistory(qid,name){
    if(inspector)inspector.innerHTML='<div class="empty-data"><strong>Պատմական տարածքների տվյալները ժամանակավորապես չբեռնվեցին։</strong><p>Քարտեզի հիմնական աշխատանքը շարունակվում է։</p></div>';
  }
 }
+let explorerMode="states", explorerYear=2026;
+const EXPLORER_TYPES={states:"Q6256",peoples:"Q41710",languages:"Q315",animals:"Q729"};
+function explorerYearBounds(y){return {start:String(y)+"-01-01T00:00:00Z",end:String(y)+"-12-31T23:59:59Z"}}
+async function explorerSearch(mode,term){
+ const type=EXPLORER_TYPES[mode]; if(!type)return [];
+ const q='SELECT ?item ?itemLabel ?coord ?image ?inception WHERE { ?item wdt:P31/wdt:P279* wd:'+type+'. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P18 ?image.} OPTIONAL{?item wdt:P571 ?inception.} '+(term?'FILTER(CONTAINS(LCASE(STR(?itemLabel)),LCASE("'+String(term).replaceAll('"','\\\"')+'")))':'')+' SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 80';
+ return sparql(q).catch(()=>[]);
+}
+function clearExplorerLayers(){if(window.__explorerGroup){window.__explorerGroup.clearLayers();window.__explorerGroup.remove();window.__explorerGroup=null}}
+function explorerCard(row){
+ const id=row.item?.value?.split("/").pop()||"", name=row.itemLabel?.value||id;
+ return '<div class="entity-card"><div><strong>'+esc(name)+'</strong><small>'+esc(id)+'</small></div><button class="explore-select" data-qid="'+esc(id)+'" data-name="'+esc(name)+'">Open</button></div>';
+}
+async function renderExplorer(){
+ const list=document.querySelector("#history-entity-list"),ins=document.querySelector("#history-inspector");if(!list)return;
+ const term=document.querySelector("#history-entity")?.value.trim()||"";
+ const y=Number(document.querySelector("#history-year")?.value||2026);explorerYear=y;
+ list.innerHTML='<div class="inspector-placeholder">Loading historical data…</div>';clearExplorerLayers();
+ const rows=await explorerSearch(explorerMode,term);
+ list.innerHTML=rows.length?rows.map(explorerCard).join(""):'<div class="inspector-placeholder">No structured records returned for this query.</div>';
+ list.querySelectorAll(".explore-select").forEach(b=>b.addEventListener("click",()=>selectExplorerEntity(b.dataset.qid,b.dataset.name)));
+ if(explorerMode==="states"){
+   const countries=rows.filter(r=>r.coord?.value);
+   window.__explorerGroup=L.layerGroup().addTo(leafletMap);
+   countries.forEach(r=>{const c=parseCoord(r.coord.value);if(c)L.circleMarker(c,{radius:5,color:"#e9a28e",fillColor:"#d76545",fillOpacity:.8}).bindTooltip(r.itemLabel?.value||"").addTo(window.__explorerGroup)});
+ }
+ if(ins)ins.innerHTML='<div class="inspector-placeholder"><strong>'+rows.length+'</strong> structured records found for <strong>'+esc(explorerMode)+'</strong> at <strong>'+esc(String(y))+'</strong>. Select an entity for details.</div>';
+}
+async function selectExplorerEntity(qid,name){
+ const ins=document.querySelector("#history-inspector");if(!ins)return;
+ ins.innerHTML='<div class="inspector-placeholder">Loading '+esc(name)+'…</div>';
+ const e=(await getEntities([qid],["en","hy","ru"]))[qid]||{};
+ const cl=e.claims||{}, inception=prop(cl,"P571")[0]?.mainsnak?.datavalue?.value, extinction=prop(cl,"P576")[0]?.mainsnak?.datavalue?.value;
+ const desc=e.descriptions?.en?.value||"No English description available.";
+ const coords=prop(cl,"P625")[0]?.mainsnak?.datavalue?.value;
+ const sources='<div class="history-sources">Primary structured data: <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'">Wikidata '+esc(qid)+'</a>. Dates may be approximate because Wikidata stores date precision and qualifiers rather than a guaranteed continuous historical boundary.</div>';
+ ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(desc)+'</p><div class="history-facts"><div class="history-fact"><span>Type</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Origin / inception</span><strong>'+esc(inception?formatYear(yearOf(inception)):"Unknown")+'</strong></div><div class="history-fact"><span>End / extinction</span><strong>'+esc(extinction?formatYear(yearOf(extinction)):"Not recorded")+'</strong></div><div class="history-fact"><span>Coordinates</span><strong>'+esc(coords||"Not recorded")+'</strong></div></div>'+sources;
+}
+function initExplorer(){
+ const root=document.querySelector("#history-explorer");if(!root)return;
+ document.querySelectorAll(".explorer-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".explorer-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");explorerMode=b.dataset.mode;renderExplorer()}));
+ const slider=document.querySelector("#history-slider"),year=document.querySelector("#history-year"),cur=document.querySelector("#history-current");
+ slider?.addEventListener("input",()=>{year.value=slider.value;cur.textContent=slider.value;renderExplorer()});
+ year?.addEventListener("change",()=>{slider.value=year.value;cur.textContent=year.value});
+ document.querySelector("#history-apply")?.addEventListener("click",renderExplorer);
+ document.querySelector("#history-now")?.addEventListener("click",()=>{year.value=2026;slider.value=2026;cur.textContent="2026";renderExplorer()});
+ renderExplorer();
+}
 function initWorldMap(){
  if(!mapEl||typeof L==="undefined")return;
  leafletMap=L.map("world-map",{worldCopyJump:true,zoomControl:false,minZoom:1,maxZoom:10,preferCanvas:true,zoomSnap:.25,zoomDelta:.5}).setView([20,0],2);
@@ -437,4 +485,4 @@ function initWorldMap(){
  }).catch(err=>{mapEl.innerHTML='<div class="map-error">Քարտեզի տվյալները չբեռնվեցին։</div>';console.error(err)});
 }
 document.body.classList.add("map-only-page");
-initWorldMap();
+initWorldMap();\nsetTimeout(initExplorer,250);
