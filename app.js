@@ -510,7 +510,7 @@ async function selectExplorerEntity(qid,name){
  const ins=document.querySelector("#history-inspector");if(!ins||!leafletMap)return;
  ins.innerHTML='<div class="inspector-placeholder">Loading '+esc(name)+'…</div>';
  clearExplorerLayers();
- const resolvedQid=explorerMode==="states"&&!/^Q\\d+$/.test(qid)?await findQidByIso(qid):qid;
+ const resolvedQid=explorerMode==="states"&&!/^Q\d+$/.test(qid)?await findQidByIso(qid):qid;
  const entity=resolvedQid?(await getEntities([resolvedQid],["en","hy","ru"]))[resolvedQid]||null:null;
  const cl=entity?.claims||{};
  const inception=prop(cl,"P571")[0]?.mainsnak?.datavalue?.value||null;
@@ -556,7 +556,7 @@ async function parseHistoricalDateInput(value){
 function formatExplorerDateInput(y){
  if(y<0){
    const c=Math.max(1,Math.ceil(Math.abs(y)/100));
-   return c+"th century BCE";
+   return c+(c%100>=11&&c%100<=13?"th":c%10===1?"st":c%10===2?"nd":c%10===3?"rd":"th")+" century BCE";
  }
  return String(y);
 }
