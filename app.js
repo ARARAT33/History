@@ -151,7 +151,7 @@ function valueLabel(entities,id,lang){
 }
 const UI_LANG_NAMES={hy:"Հայերեն",en:"English",ru:"Русский"};
 const UI_KEYS={
- hy:{country:"Պետություն",population:"Բնակչություն",area:"Տարածք",capital:"Մայրաքաղաք",languages:"Պետական լեզու",peoples:"Ժողովուրդներ / էթնիկ խմբեր",religions:"Կրոններ",description:"Նկարագրություն"},
+ hy:{country:"Country",population:"Population",area:"Area",capital:"Capital",languages:"Official language(s)",peoples:"Peoples / ethnic groups",religions:"Կրոններ",description:"Description"},
  en:{country:"Country",population:"Population",area:"Area",capital:"Capital",languages:"Official language(s)",peoples:"Peoples / ethnic groups",religions:"Religions",description:"Description"},
  ru:{country:"Государство",population:"Население",area:"Площадь",capital:"Столица",languages:"Государственные языки",peoples:"Народы / этнические группы",religions:"Религии",description:"Описание"}
 };
@@ -202,7 +202,7 @@ function ethnicRows(rows,lang,entities){
    const d=x.date?.value?claimDate({qualifiers:{P585:[{datavalue:{value:x.date.value}}]}}):"";
    const period=x.periodLabel?.value?x.periodLabel.value:"";
    return '<button type="button" class="people-row" data-people-id="'+esc(id)+'" data-people-name="'+esc(n)+'"><span><strong>'+esc(n)+'</strong><small>'+([pct,d,period].filter(Boolean).map(esc).join(" · ")||"Data details")+'</small></span><b>→</b></button>';
- }).join("")||'<div class="empty-data">Այս լեզվով կառուցվածքային ազգաբանական տվյալներ չկան։</div>';
+ }).join("")||'<div class="empty-data">No structured ethnographic data is available for this language.</div>';
 }
 function religionRows(rows,lang,entities){
  const seen=new Set();
@@ -212,7 +212,7 @@ function religionRows(rows,lang,entities){
    const pct=x.value?.value!=null?String(Math.round(Number(x.value.value)*10000)/100).replaceAll(".0","")+"%":"";
    const d=x.date?.value?formatYear(yearOf(x.date.value)):"";
    return '<div class="simple-row"><span><strong>'+esc(n)+'</strong><small>'+([pct,d].filter(Boolean).map(esc).join(" · ")||"")+'</small></span></div>';
- }).join("")||'<div class="empty-data">Կրոնական կառուցվածքային տվյալներ չկան։</div>';
+ }).join("")||'<div class="empty-data">No structured religious data is available.</div>';
 }
 async function communityData(qid){
  const ethnicQ='SELECT ?ethnic ?ethnicLabel ?value ?date ?period ?periodLabel WHERE { wd:'+qid+' p:P172 ?st. ?st ps:P172 ?ethnic. OPTIONAL{?st pq:P1107 ?value.} OPTIONAL{?st pq:P585 ?date.} OPTIONAL{?st pq:P2348 ?period. ?period rdfs:label ?periodLabel. FILTER(LANG(?periodLabel) IN ("hy","en","ru"))} SERVICE wikibase:label{bd:serviceParam wikibase:language "hy,en,ru".}} LIMIT 80';
@@ -249,7 +249,7 @@ async function renderCountry(mapName,displayName,iso){
    panel.querySelectorAll(".people-row").forEach(b=>b.addEventListener("click",()=>selectPeopleHistory(b.dataset.peopleId,b.dataset.peopleName)));
  }catch(err){
    console.error(err);
-   panel.innerHTML='<div class="empty-data big-empty"><strong>Data loading failed.</strong><p>Աղբյուրներից մեկի ժամանակավոր հասանելիությունը չխանգարելու համար մնացած հասանելի տվյալները չեն ներկայացվում որպես փաստ։</p></div>';
+   panel.innerHTML='<div class="empty-data big-empty"><strong>Data loading failed.</strong><p>Sourceներից մեկի ժամանակավոր հասանելիությունը չխանգարելու համար մնացած հասանելի տվյալները չեն ներկայացվում որպես փաստ։</p></div>';
  }
 }
 function activateLanguage(panel,lang){
@@ -380,7 +380,7 @@ function placeInspectorHtml(place,index){
  const conf=confidenceFor(place);
  const periods=place.periods.length
    ?place.periods.map(p=>'<div class="period-card"><strong>'+p.html+'</strong></div>').join("")
-   :'<div class="period-card"><strong>Ժամանակաշրջանը աղբյուրում նշված չէ</strong></div>';
+   :'<div class="period-card"><strong>Period not recorded in the source</strong></div>';
  return `<div class="inspector-head"><span class="eyebrow">HISTORICAL PLACE · ${esc(place.id)}</span><button type="button" class="inspector-close" onclick="window.historyMapClearSelection()">×</button></div><h4>${esc(place.name)}</h4><p class="place-description">${esc(place.description||"Պատմական բնակության/կապի վայր՝ ըստ հասանելի կառուցվածքային տվյալների։")}</p><div class="period-stack">${periods}</div><div class="confidence ${conf.className}"><span>${esc(conf.label)}</span><small>${esc(conf.why)}</small></div><div class="place-sources"><strong>Աղբյուր</strong>${sourceMarkup(place)}</div>`;
 }
 function showHistoryPlace(place,index){
@@ -391,7 +391,7 @@ function showHistoryPlace(place,index){
    if(c)leafletMap.flyTo(c,Math.max(5,leafletMap.getZoom()),{duration:.7});
  }
 }
-window.historyMapClearSelection=()=>{const p=document.querySelector("#history-inspector");if(p)p.innerHTML='<div class="inspector-placeholder"><span>✦</span><strong>Ընտրիր քարտեզի նշված վայրերից մեկը</strong><p>Այստեղ կերևան վայրի անվանումը, դարերը, sources և տվյալների որակի նշումը։</p></div>'};
+window.historyMapClearSelection=()=>{const p=document.querySelector("#history-inspector");if(p)p.innerHTML='<div class="inspector-placeholder"><span>✦</span><strong>Select one of the marked historical locations</strong><p>The location name, historical period, sources and data-quality information will appear here.</p></div>'};
 async function selectPeopleHistory(qid,name){
  if(!leafletMap)return;
  clearHistorical();selectedPeopleId=qid;
