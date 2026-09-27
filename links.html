@@ -20,8 +20,9 @@
 (()=>{const URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json",PAGE=50;
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));const first=(o,k)=>{for(const x of k)if(o?.[x]!=null&&String(o[x]).trim())return o[x];return""};
 const arr=x=>Array.isArray(x)?x:["items","records","history","pages","archive","data","results"].flatMap(k=>Array.isArray(x?.[k])?x[k]:[]);
-const normalizeUrl=v=>{let s=String(v??"").trim();const m=s.match(/^\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)$/);return m?m[2]:s};
-const linkLabel=v=>{let s=String(v??"").trim();const m=s.match(/^\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)$/);return m?m[1]:s};
+const parseMdLink=v=>{let s=String(v??"").trim();if(s.startsWith("[")&&s.endsWith(")")){const mid=s.indexOf("](");if(mid>0&&s.endsWith(")")){const label=s.slice(1,mid),url=s.slice(mid+2,-1);if(/^https?:\\/\\//i.test(url))return{label,url}}}return null};
+const normalizeUrl=v=>{const m=parseMdLink(v);return m?m.url:String(v??"").trim()};
+const linkLabel=v=>{const m=parseMdLink(v);return m?m.label:String(v??"").trim()};
 const yt=u=>{try{let x=new URL(normalizeUrl(u)),id=x.hostname.includes("youtu.be")?x.pathname.slice(1):x.searchParams.get("v");return id?"https://www.youtube.com/embed/"+encodeURIComponent(id):""}catch{return""}};
 const preview=u=>{if(!/^https?:\/\//i.test(String(u||"")))return"";u=normalizeUrl(u);let l=u.toLowerCase(),y=yt(u);if(y)return '<div class="history-preview"><iframe src="'+esc(y)+'" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';if(/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(l))return '<div class="history-preview"><video controls playsinline src="'+esc(u)+'"></video></div>';if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(l))return '<div class="history-preview"><img src="'+esc(u)+'" alt=""></div>';return '<div class="history-preview"><iframe class="is-website" src="'+esc(u)+'" title="Website preview" loading="lazy" allowfullscreen></iframe></div>'};
 let all=[],filtered=[],page=1;const root=document.getElementById("history-db-content"),search=document.getElementById("history-search"),count=document.getElementById("history-count"),pages=document.getElementById("history-pages");
