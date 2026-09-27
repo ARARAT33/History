@@ -49,7 +49,7 @@ function installSelectionMenu(){
 function installTranslator(){
   if(!window.googleTranslateElementInit)window.googleTranslateElementInit=()=>{
     if(!window.google?.translate?.TranslateElement)return;
-    new google.translate.TranslateElement({pageLanguage:"en",includedLanguages:LANGS.filter(x=>x[1]!=="en").map(x=>x[1]).join(","),autoDisplay:false},"history-translate-hidden");
+    new google.translate.TranslateElement({pageLanguage:"hy",includedLanguages:LANGS.filter(x=>x[1]!=="en").map(x=>x[1]).join(","),autoDisplay:false},"history-translate-hidden");
   };
   let hidden=document.getElementById("history-translate-hidden");
   if(!hidden){hidden=document.createElement("div");hidden.id="history-translate-hidden";hidden.hidden=true;document.body.appendChild(hidden)}
