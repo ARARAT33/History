@@ -45,12 +45,14 @@ async function fetchJson(url,options={}){
  if(!text.trim().startsWith("{")&&!text.trim().startsWith("["))throw Error("Ոչ JSON պատասխան");
  return JSON.parse(text);
 }
+const sparqlCache=new Map();
 async function sparql(query){
+ const hit=sparqlCache.get(query);if(hit&&Date.now()-hit.time<300000)return hit.rows;
  const u=WDQS+"?format=json&query="+encodeURIComponent(query);
  const r=await fetch(u,{headers:{Accept:"application/sparql-results+json"}});
  if(!r.ok)throw Error("WDQS "+r.status);
  const j=await r.json();
- return j.results?.bindings||[];
+ const rows=j.results?.bindings||[];sparqlCache.set(query,{time:Date.now(),rows});return rows;
 }
 async function findQidByIso(iso){
  const code=String(iso||"").trim().toUpperCase();
@@ -228,7 +230,7 @@ async function renderCountry(mapName,displayName,iso){
    const entity=await findCountryEntity(mapName,iso);
    if(!entity){
      const fallback=await wikipediaFallback(mapName);
-     panel.innerHTML=fallback||'<div class="empty-data big-empty"><strong>Այս պետության կառուցվածքային գրառումը դեռ հասանելի չէ։</strong><p>Փնտրվեց ISO կոդով, տարբեր լեզուներով և Wikidata-ի որոնմամբ, բայց օգտագործելի գրառում չգտնվեց։</p></div>';
+     panel.innerHTML=fallback||'<div class="empty-data big-empty"><strong>No structured country record is currently available.</strong><p>The country was searched by ISO code, language variants and Wikidata, but no usable record was found.</p></div>';
      return;
    }
    const cd=await buildCountryData(entity);
@@ -247,7 +249,7 @@ async function renderCountry(mapName,displayName,iso){
    panel.querySelectorAll(".people-row").forEach(b=>b.addEventListener("click",()=>selectPeopleHistory(b.dataset.peopleId,b.dataset.peopleName)));
  }catch(err){
    console.error(err);
-   panel.innerHTML='<div class="empty-data big-empty"><strong>Տվյալների բեռնումը չհաջողվեց։</strong><p>Աղբյուրներից մեկի ժամանակավոր հասանելիությունը չխանգարելու համար մնացած հասանելի տվյալները չեն ներկայացվում որպես փաստ։</p></div>';
+   panel.innerHTML='<div class="empty-data big-empty"><strong>Data loading failed.</strong><p>Աղբյուրներից մեկի ժամանակավոր հասանելիությունը չխանգարելու համար մնացած հասանելի տվյալները չեն ներկայացվում որպես փաստ։</p></div>';
  }
 }
 function activateLanguage(panel,lang){
@@ -394,7 +396,7 @@ async function selectPeopleHistory(qid,name){
  if(!leafletMap)return;
  clearHistorical();selectedPeopleId=qid;
  const inspector=document.querySelector("#history-inspector");
- if(inspector)inspector.innerHTML='<div class="loading-state compact"><div class="loading-orbit"></div><strong>'+esc(name)+'</strong><p>Փնտրվում են պատմական բնակության վայրերը, geoshape-երը, կետերը և ժամանակաշրջանները…</p></div>';
+ if(inspector)inspector.innerHTML='<div class="loading-state compact"><div class="loading-orbit"></div><strong>'+esc(name)+'</strong><p>Loading historical locations, geographic shapes, points and dates…</p></div>';
  try{
    historicalPlaces=await historicalPlacesFor(qid);
    historicalGroup=L.layerGroup().addTo(leafletMap);
@@ -411,7 +413,7 @@ async function selectPeopleHistory(qid,name){
      L.circleMarker(c,{radius:6,color:"#8d1610",fillColor:"#d9251b",fillOpacity:.86,weight:2}).on("click",()=>showHistoryPlace(p)).addTo(historicalGroup);
    });
    const count=historicalPlaces.filter(p=>p.coord||p.geo).length;
-   if(inspector)inspector.innerHTML='<div class="people-summary"><div><span class="eyebrow">PEOPLE MAP</span><h4>'+esc(name)+'</h4><p>'+count+' քարտեզագրված վայր/տարածք · '+painted+' geoshape փորձարկված</p></div><button type="button" class="history-clear" onclick="window.historyMapClearSelection()">Մաքրել</button></div><div class="people-stat-grid"><div><strong>'+historicalPlaces.length+'</strong><small>records found</small></div><div><strong>'+painted+'</strong><small>geographic shapes</small></div><div><strong>'+historicalPlaces.filter(p=>p.coord).length+'</strong><small>coordinate locations</small></div></div><div class="inspector-note">Կարմիրով նշված տարածքները/կետերը կառուցված են հասանելի Wikidata + Wikimedia Commons geospatial տվյալներից։ «Confidence»-ը տվյալների ամբողջականության ցուցիչ է, ոչ թե պատմական ճշմարտության ինքնուրույն գնահատական։</div>';
+   if(inspector)inspector.innerHTML='<div class="people-summary"><div><span class="eyebrow">PEOPLE MAP</span><h4>'+esc(name)+'</h4><p>'+count+' mapped locations/areas · '+painted+' geoshapes checked</p></div><button type="button" class="history-clear" onclick="window.historyMapClearSelection()">Clear</button></div><div class="people-stat-grid"><div><strong>'+historicalPlaces.length+'</strong><small>records found</small></div><div><strong>'+painted+'</strong><small>geographic shapes</small></div><div><strong>'+historicalPlaces.filter(p=>p.coord).length+'</strong><small>coordinate locations</small></div></div><div class="inspector-note">Red areas and points are derived from available Wikidata and Wikimedia Commons geospatial records. Confidence describes data completeness, not historical truth.</div>';
    if(count){
      const pts=historicalPlaces.map(p=>parseCoord(p.coord)).filter(Boolean);
      if(pts.length){const b=L.latLngBounds(pts);if(b.isValid())leafletMap.fitBounds(b.pad(.25),{maxZoom:6,duration:.7})}
@@ -426,12 +428,16 @@ const EXPLORER_TYPES={states:"Q6256",peoples:"Q41710",languages:"Q315",animals:"
 function explorerYearBounds(y){return {start:String(y)+"-01-01T00:00:00Z",end:String(y)+"-12-31T23:59:59Z"}}
 async function explorerSearch(mode,term){
  const clean=String(term||"").trim();
+ if(mode==="states" && geoLayer){
+   const features=geoLayer.getLayers().map(layer=>layer.feature).filter(Boolean);
+   const filtered=clean?features.filter(f=>String(f.properties?.name||"").toLowerCase().includes(clean.toLowerCase())):features;
+   return filtered.slice(0,80).map(f=>({item:{value:"http://www.wikidata.org/entity/"+(f.properties?.iso||"")},itemLabel:{value:f.properties?.name||"Unknown"},coord:null,geo:null,inception:null,extinction:null,iso:{value:f.properties?.iso||""}}));
+ }
  if(clean){
    const ids=await searchQids(clean,"en");
    const ents=await getEntities(ids,["en"]);
    const valid=ids.map(id=>ents[id]).filter(Boolean).filter(ent=>{
      const types=prop(ent.claims,"P31").map(claimId);
-     if(mode==="states")return types.includes("Q6256")||types.includes("Q3624078")||prop(ent.claims,"P297").length;
      if(mode==="languages")return types.includes("Q315")||types.includes("Q34770")||types.includes("Q20162172");
      if(mode==="animals")return types.includes("Q16521")||types.includes("Q729")||types.includes("Q55983715");
      return types.includes("Q41710")||types.includes("Q16334295")||types.includes("Q16881915");
@@ -439,11 +445,10 @@ async function explorerSearch(mode,term){
    return valid.slice(0,40).map(ent=>({item:{value:"http://www.wikidata.org/entity/"+ent.id},itemLabel:{value:ent.labels?.en?.value||ent.id},coord:prop(ent.claims,"P625")[0]?.mainsnak?.datavalue?.value?.latitude!=null?{value:"Point("+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.longitude+" "+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.latitude+")"}:null,inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value,geo:null}));
  }
  let q="";
- if(mode==="states")q='SELECT ?item ?itemLabel ?coord ?geo ?inception ?extinction WHERE {?item wdt:P297 ?iso. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P3896 ?geo.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 80';
- else if(mode==="languages")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q315. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 60';
- else if(mode==="animals")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q16521. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 60';
- else q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q41710. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 60';
- return sparql(q).then(rows=>rows.filter(r=>{const s=yearOf(r.inception?.value),e=yearOf(r.extinction?.value);return !s||s<=explorerYear?(!e||e>=explorerYear):false})).catch(()=>[]);
+ if(mode==="languages")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q315. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 45';
+ else if(mode==="animals")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q16521. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 45';
+ else q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q41710. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 45';
+ return sparql(q).then(rows=>rows.filter(r=>{const sy=yearOf(r.inception?.value),ey=yearOf(r.extinction?.value);return (!sy||sy<=explorerYear)&&(!ey||ey>=explorerYear)})).catch(()=>[]);
 }
 function clearExplorerLayers(){if(window.__explorerGroup){window.__explorerGroup.clearLayers();window.__explorerGroup.remove();window.__explorerGroup=null}}
 function explorerCard(row){
