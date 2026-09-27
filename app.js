@@ -296,7 +296,7 @@ function resetMap(){
  clearHistorical();
  if(selectedLayer){styleLayer(selectedLayer,countryStyle(selectedLayer.feature));selectedLayer=null}
  leafletMap.flyToBounds([[-58,-180],[82,180]],{padding:[10,10],maxZoom:2,duration:.8});
- if(mapStatus)mapStatus.textContent="Ամբողջ աշխարհ";
+ if(mapStatus)mapStatus.textContent="World";
 }
 function parseCoord(value){
  const raw=String(value||"").trim();
@@ -312,9 +312,9 @@ function confidenceFor(place){
  const shape=Boolean(place.geo);
  const coord=Boolean(place.coord);
  const dated=place.periods.some(p=>p.hasDate);
- if(refs&&shape&&dated)return {label:"Բարձր",className:"high",why:"աղբյուր + տարածք + ժամանակային տվյալ"};
- if((refs&&dated)||(shape&&dated))return {label:"Միջին",className:"medium",why:"աղբյուր կամ տարածքային տվյալ + ժամանակ"};
- return {label:"Անորոշ",className:"low",why:"ժամանակը կամ հղումները թերի են"};
+ if(refs&&shape&&dated)return {label:"High",className:"high",why:"source + area + date"};
+ if((refs&&dated)||(shape&&dated))return {label:"Medium",className:"medium",why:"source or area + date"};
+ return {label:"Uncertain",className:"low",why:"date or references are incomplete"};
 }
 function periodObject(row){
  const start=row.start?.value,end=row.end?.value,point=row.point?.value,period=row.periodLabel?.value;
@@ -451,28 +451,80 @@ function explorerCard(row){
  return '<div class="entity-card"><div><strong>'+esc(name)+'</strong><small>'+esc(id)+'</small></div><button class="explore-select" data-qid="'+esc(id)+'" data-name="'+esc(name)+'">Open</button></div>';
 }
 async function renderExplorer(){
- const list=document.querySelector("#history-entity-list"),ins=document.querySelector("#history-inspector");if(!list)return;
+ const list=document.querySelector("#history-entity-list"),ins=document.querySelector("#history-inspector");
+ if(!list)return;
  const term=document.querySelector("#history-entity")?.value.trim()||"";
- const y=Number(document.querySelector("#history-year")?.value||2026);explorerYear=y;
- list.innerHTML='<div class="inspector-placeholder">Loading historical data…</div>';clearExplorerLayers();
+ const y=Number(document.querySelector("#history-year")?.value||2026);
+ explorerYear=Number.isFinite(y)?y:2026;
+ list.innerHTML='<div class="inspector-placeholder">Loading '+esc(explorerMode)+'…</div>';
+ clearExplorerLayers();
  let rows=await explorerSearch(explorerMode,term);
  if(!rows.length&&!term){
-   const fallbackTerms={peoples:["Armenians","Romans","Greeks","Persians","Kurds","Arabs","Celts"],languages:["English","Armenian","Russian","French","German","Spanish","Arabic"],animals:["lion","tiger","elephant","dog","cat","horse","wolf"],states:["Armenia","France","Germany","United Kingdom","United States","China","India","Japan"]};
+   const fallbackTerms={
+    states:["Armenia","France","Germany","United Kingdom","United States","China","India","Japan"],
+    peoples:["Armenians","Romans","Greeks","Persians","Kurds","Arabs","Celts"],
+    languages:["English","Armenian","Russian","French","German","Spanish","Arabic"],
+    animals:["lion","tiger","elephant","dog","cat","horse","wolf"]
+   };
    const names=fallbackTerms[explorerMode]||[];
    const ids=(await Promise.all(names.map(n=>searchQids(n,"en")))).flat().slice(0,20);
    const ents=await getEntities(ids,["en"]);
-   rows=ids.map(id=>ents[id]).filter(Boolean).map(ent=>({item:{value:"http://www.wikidata.org/entity/"+ent.id},itemLabel:{value:ent.labels?.en?.value||ent.id},coord:null,geo:null,inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value}));
+   rows=ids.map(id=>ents[id]).filter(Boolean).map(ent=>({
+    item:{value:"http://www.wikidata.org/entity/"+ent.id},
+    itemLabel:{value:ent.labels?.en?.value||ent.id},
+    coord:prop(ent.claims,"P625")[0]?.mainsnak?.datavalue?.value?.latitude!=null?{value:"Point("+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.longitude+" "+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.latitude+")"}:null,
+    inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,
+    extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value,geo:null
+   }));
  }
- list.innerHTML=rows.length?rows.map(explorerCard).join(""):'<div class="inspector-placeholder">No records were returned. Try a more specific search.</div>';
+ list.innerHTML=rows.length?rows.slice(0,60).map(explorerCard).join(""):'<div class="inspector-placeholder">No records were returned. Try another search or year.</div>';
  list.querySelectorAll(".explore-select").forEach(b=>b.addEventListener("click",()=>selectExplorerEntity(b.dataset.qid,b.dataset.name)));
+ if(ins)ins.innerHTML='<div class="inspector-placeholder"><strong>'+rows.length+'</strong> records for <strong>'+esc(explorerMode)+'</strong> in <strong>'+esc(String(explorerYear))+'</strong>. Select an entity to show its historical locations on the map.</div>';
+}
+async function selectExplorerEntity(qid,name){
+ const ins=document.querySelector("#history-inspector");if(!ins||!leafletMap)return;
+ ins.innerHTML='<div class="inspector-placeholder">Loading '+esc(name)+' locations…</div>';
+ clearExplorerLayers();
+ const entity=(await getEntities([qid],["en"]))[qid]||null;
+ const inception=entity?prop(entity.claims,"P571")[0]?.mainsnak?.datavalue?.value:null;
+ const extinction=entity?prop(entity.claims,"P576")[0]?.mainsnak?.datavalue?.value:null;
+ const locations=await explorerLocations(qid,explorerMode,explorerYear);
+ window.__explorerGroup=L.layerGroup().addTo(leafletMap);
+
  if(explorerMode==="states"){
-   window.__explorerGroup=L.layerGroup().addTo(leafletMap);
-   const shaped=rows.filter(r=>r.geo?.value).slice(0,30);
-   const rendered=await Promise.all(shaped.map(async r=>({r,g:await commonsMapGeoJSON(r.geo.value)})));
-   rendered.forEach(({r,g})=>{if(g)L.geoJSON(g,{style:{color:"#ffd9ce",weight:1.5,fillColor:"#d76545",fillOpacity:.35},onEachFeature:(ft,ly)=>ly.bindTooltip(r.itemLabel?.value||"").on("click",()=>selectExplorerEntity(r.item?.value?.split("/").pop(),r.itemLabel?.value||""))}).addTo(window.__explorerGroup)});
-   rows.filter(r=>r.coord?.value&&!r.geo?.value).slice(0,80).forEach(r=>{const c=parseCoord(r.coord.value);if(c)L.circleMarker(c,{radius:5,color:"#e9a28e",fillColor:"#d76545",fillOpacity:.8}).bindTooltip(r.itemLabel?.value||"").addTo(window.__explorerGroup)});
+   const geoRows=entity?.claims?.P3896||[];
+   const coord=entity?.claims?.P625?.[0]?.mainsnak?.datavalue?.value;
+   if(coord?.latitude!=null)L.circleMarker([coord.latitude,coord.longitude],{radius:8,weight:2,fillOpacity:.85}).bindTooltip(name).addTo(window.__explorerGroup);
+   for(const st of geoRows.slice(0,3)){
+     const snak=st?.mainsnak?.datavalue?.value;
+     if(!snak)continue;
+     try{const g=await commonsMapGeoJSON(snak);if(g)L.geoJSON(g,{style:{color:"#d76545",weight:2,fillColor:"#d76545",fillOpacity:.25}}).bindTooltip(name).addTo(window.__explorerGroup)}catch(_){}
+   }
+ } else {
+   const wanted=new Set();
+   locations.forEach(r=>{const iso=String(r.iso?.value||"").toUpperCase();if(iso)wanted.add(iso)});
+   if(wanted.size&&geoLayer){
+     geoLayer.eachLayer(layer=>{
+       const iso=String(layer.feature?.properties?.iso||layer.feature?.properties?.ISO_A3||"").toUpperCase();
+       if(wanted.has(iso))styleLayer(layer,{color:"#8d251d",weight:2.4,fillColor:"#d76545",fillOpacity:.72});
+       else styleLayer(layer,countryStyle(layer.feature));
+     });
+   }
+   locations.forEach(r=>{
+     const country=r.countryLabel?.value||r.iso?.value||"";
+     const iso=String(r.iso?.value||"").toUpperCase();
+     if(iso&&geoLayer){
+       geoLayer.eachLayer(layer=>{
+         const li=String(layer.feature?.properties?.iso||"").toUpperCase();
+         if(li===iso)layer.bindTooltip(name+" · "+country,{sticky:true});
+       });
+     }
+   });
  }
- if(ins)ins.innerHTML='<div class="inspector-placeholder"><strong>'+rows.length+'</strong> structured records found for <strong>'+esc(explorerMode)+'</strong> at <strong>'+esc(String(y))+'</strong>. Select an entity for details.</div>';
+
+ const start=yearOf(inception),end=yearOf(extinction);
+ const period=(start!=null||end!=null)?(start!=null&&end!=null?formatYear(start)+" — "+formatYear(end):start!=null?formatYear(start)+" — Present":"Until "+formatYear(end)):"Period not recorded";
+ ins.innerHTML='<div class="history-facts"><div class="history-fact"><span>Entity</span><strong>'+esc(name)+'</strong></div><div class="history-fact"><span>Mode</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Selected year</span><strong>'+esc(String(explorerYear))+'</strong></div><div class="history-fact"><span>Entity period</span><strong>'+esc(period)+'</strong></div><div class="history-fact"><span>Mapped countries</span><strong>'+esc(String(locations.length))+'</strong></div></div><div class="history-sources"><a href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Open Wikidata source ↗</a></div>';
 }
 async function explorerLocations(qid,mode,year){
  let q="";
@@ -487,7 +539,7 @@ function highlightExplorerCountries(rows){
  if(!geoLayer)return;
  const wanted=new Set(rows.map(r=>String(r.iso?.value||"").toUpperCase()).filter(Boolean));
  geoLayer.eachLayer(layer=>{
-   const iso=String(layer.feature?.properties?.iso||layer.feature?.properties?.ISO_A2||"").toUpperCase();
+   const iso=String(layer.feature?.properties?.iso||layer.feature?.properties?.ISO_A3||layer.feature?.properties?.ISO_A2||"").toUpperCase();
    if(wanted.has(iso))styleLayer(layer,{color:"#ffd9ce",weight:2.5,fillColor:"#d76545",fillOpacity:.7});
    else if(layer!==selectedLayer)styleLayer(layer,countryStyle(layer.feature));
  });
@@ -522,7 +574,7 @@ function initExplorer(){
  const root=document.querySelector("#history-explorer");if(!root)return;
  document.querySelectorAll(".explorer-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".explorer-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");explorerMode=b.dataset.mode;renderExplorer()}));
  const slider=document.querySelector("#history-slider"),year=document.querySelector("#history-year"),cur=document.querySelector("#history-current");
- slider?.addEventListener("input",()=>{year.value=slider.value;cur.textContent=slider.value;renderExplorer()});
+ let explorerTimer=null; slider?.addEventListener("input",()=>{year.value=slider.value;cur.textContent=slider.value;clearTimeout(explorerTimer);explorerTimer=setTimeout(renderExplorer,220)});
  year?.addEventListener("change",()=>{slider.value=year.value;cur.textContent=year.value});
  document.querySelector("#history-apply")?.addEventListener("click",renderExplorer);
  document.querySelector("#history-now")?.addEventListener("click",()=>{year.value=2026;slider.value=2026;cur.textContent="2026";renderExplorer()});
@@ -532,7 +584,7 @@ function initWorldMap(){
  if(!mapEl||typeof L==="undefined")return;
  leafletMap=L.map("world-map",{worldCopyJump:true,zoomControl:false,minZoom:1,maxZoom:10,preferCanvas:true,zoomSnap:.25,zoomDelta:.5}).setView([20,0],2);
  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(leafletMap);
- fetch("world.geojson",{cache:"no-store"}).then(async res=>{if(!res.ok)throw Error("world.geojson "+res.status);return res.json()}).then(geo=>{
+ fetch("world.geojson",{cache:"force-cache"}).then(async res=>{if(!res.ok)throw Error("world.geojson "+res.status);return res.json()}).then(geo=>{
    geoLayer=L.geoJSON(geo,{style:countryStyle,onEachFeature:(feature,layer)=>{
      layer.on({click:()=>focusCountry(layer),mouseover:()=>{if(layer!==selectedLayer)styleLayer(layer,{weight:2.2,fillOpacity:1})},mouseout:()=>{if(layer!==selectedLayer)styleLayer(layer,countryStyle(feature))}});
      const n=aliases[feature.properties?.name]||feature.properties?.name||"";
@@ -546,4 +598,4 @@ function initWorldMap(){
 }
 document.body.classList.add("map-only-page");
 initWorldMap();
-setTimeout(initExplorer,250);
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(initExplorer,0));else setTimeout(initExplorer,0);
