@@ -426,7 +426,7 @@ function explorerYearBounds(y){return {start:String(y)+"-01-01T00:00:00Z",end:St
 async function explorerSearch(mode,term){
  const type=EXPLORER_TYPES[mode]; if(!type)return [];
  const q='SELECT ?item ?itemLabel ?coord ?geo ?image ?inception ?extinction WHERE { ?item wdt:P31/wdt:P279* wd:'+type+'. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P3896 ?geo.} OPTIONAL{?item wdt:P18 ?image.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} '+(term?'FILTER(CONTAINS(LCASE(STR(?itemLabel)),LCASE("'+String(term).replaceAll('"','\\\"')+'")))':'')+' SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 80';
- return sparql(q).catch(()=>[]);
+ return sparql(q).then(rows=>rows.filter(r=>{const s=yearOf(r.inception?.value),e=yearOf(r.extinction?.value);return !s||s<=explorerYear?(!e||e>=explorerYear):false})).catch(()=>[]);
 }
 function clearExplorerLayers(){if(window.__explorerGroup){window.__explorerGroup.clearLayers();window.__explorerGroup.remove();window.__explorerGroup=null}}
 function explorerCard(row){
