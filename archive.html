@@ -75,5 +75,6 @@ input.addEventListener("input",searchNow);
 fetch(DATA_URL,{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(d=>{all=records(d);shown=all.slice();render()}).catch(e=>{console.error(e);count.textContent="0 results";list.innerHTML='<div class="archive-empty">Could not load history.json.</div>';});
 })();
 </script>
+ <script src="site-tools.js"></script>
 </body>
 </html>
