@@ -34,7 +34,10 @@ function renderCard(obj, index) {
   const name = textOf(obj, ["name","title","label","pageName","page_name","slug"]) || "Untitled";
   const desc = textOf(obj, ["description","desc","summary"]) || "No description provided.";
   const rawLink = textOf(obj, ["link","url","href","source"]);
-  const embed = rawLink ? youtubeEmbed(rawLink) : "";
+  // Every link gets a preview iframe. YouTube uses its embeddable URL;
+  // other URLs are loaded directly (the target site may still block framing
+  // with X-Frame-Options/CSP, which is enforced by the browser).
+  const embed = rawLink ? (youtubeEmbed(rawLink) || rawLink) : "";
   const preview = embed
     ? '<div class="links-preview"><iframe src="' + esc(embed) + '" title="' + esc(name) + '" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"></iframe></div>'
     : "";
