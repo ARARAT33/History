@@ -566,7 +566,7 @@ async function initExplorer(){
 
  document.querySelectorAll(".explorer-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".explorer-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");explorerMode=b.dataset.mode;renderExplorer()}));
  const slider=document.querySelector("#history-slider"),year=document.querySelector("#history-year"),cur=document.querySelector("#history-current");
- let explorerTimer=null; slider?.addEventListener("input",()=>{year.value=slider.value;cur.textContent=slider.value;clearTimeout(explorerTimer);explorerTimer=setTimeout(renderExplorer,220)});
+ let explorerTimer=null; slider?.addEventListener("input",()=>{explorerYear=Number(slider.value);year.value=slider.value;cur.textContent=slider.value;clearTimeout(explorerTimer);explorerTimer=setTimeout(renderExplorer,220)});
  year?.addEventListener("change",()=>{const parsed=parseHistoricalDateInput(year.value);if(parsed==null){year.value=String(explorerYear);return}explorerYear=parsed;year.value=String(parsed);slider.min="-5000";slider.max="2026";slider.value=String(Math.max(-5000,Math.min(2026,parsed)));cur.textContent=formatExplorerDateInput(parsed);renderExplorer()});
  document.querySelector("#history-apply")?.addEventListener("click",renderExplorer);
  document.querySelector("#history-now")?.addEventListener("click",()=>{year.value="2026";slider.value=2026;cur.textContent="2026";explorerYear=2026;renderExplorer()});
