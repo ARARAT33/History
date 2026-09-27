@@ -42,7 +42,7 @@ async function fetchJson(url,options={}){
  const res=await fetch(url,options);
  const text=await res.text();
  if(!res.ok)throw Error("HTTP "+res.status);
- if(!text.trim().startsWith("{")&&!text.trim().startsWith("["))throw Error("Ոչ JSON պատասխան");
+ if(!text.trim().startsWith("{")&&!text.trim().startsWith("["))throw Error("Non-JSON response");
  return JSON.parse(text);
 }
 const sparqlCache=new Map();
@@ -149,9 +149,9 @@ async function languageCodesForOfficial(officialIds){
 function valueLabel(entities,id,lang){
  return entities?.[id]?.labels?.[lang]?.value||"";
 }
-const UI_LANG_NAMES={hy:"Հայերեն",en:"English",ru:"Русский"};
+const UI_LANG_NAMES={hy:"Armenian",en:"English",ru:"Русский"};
 const UI_KEYS={
- hy:{country:"Country",population:"Population",area:"Area",capital:"Capital",languages:"Official language(s)",peoples:"Peoples / ethnic groups",religions:"Կրոններ",description:"Description"},
+ hy:{country:"Country",population:"Population",area:"Area",capital:"Capital",languages:"Official language(s)",peoples:"Peoples / ethnic groups",religions:"Religions",description:"Description"},
  en:{country:"Country",population:"Population",area:"Area",capital:"Capital",languages:"Official language(s)",peoples:"Peoples / ethnic groups",religions:"Religions",description:"Description"},
  ru:{country:"Государство",population:"Население",area:"Площадь",capital:"Столица",languages:"Государственные языки",peoples:"Народы / этнические группы",religions:"Религии",description:"Описание"}
 };
@@ -249,7 +249,7 @@ async function renderCountry(mapName,displayName,iso){
    panel.querySelectorAll(".people-row").forEach(b=>b.addEventListener("click",()=>selectPeopleHistory(b.dataset.peopleId,b.dataset.peopleName)));
  }catch(err){
    console.error(err);
-   panel.innerHTML='<div class="empty-data big-empty"><strong>Data loading failed.</strong><p>Sourceներից մեկի ժամանակավոր հասանելիությունը չխանգարելու համար մնացած հասանելի տվյալները չեն ներկայացվում որպես փաստ։</p></div>';
+   panel.innerHTML='<div class="empty-data big-empty"><strong>Data loading failed.</strong><p>To avoid treating incomplete data as facts when a source is temporarily unavailable, the remaining available data is not shown.</p></div>';
  }
 }
 function activateLanguage(panel,lang){
@@ -372,7 +372,7 @@ async function commonsMapGeoJSON(value){
 function sourceMarkup(place){
  const items=place.sources.slice(0,4).map(s=>{
    const isUrl=String(s).startsWith("http://")||String(s).startsWith("https://");
-   return isUrl?'<a target="_blank" rel="noopener" href="'+esc(s)+'">աղբյուր ↗</a>':'<span>'+esc(s)+'</span>';
+   return isUrl?'<a target="_blank" rel="noopener" href="'+esc(s)+'">Source ↗</a>':'<span>'+esc(s)+'</span>';
  }).join("");
  return items||'<span>Wikidata statement</span>';
 }
@@ -381,7 +381,7 @@ function placeInspectorHtml(place,index){
  const periods=place.periods.length
    ?place.periods.map(p=>'<div class="period-card"><strong>'+p.html+'</strong></div>').join("")
    :'<div class="period-card"><strong>Period not recorded in the source</strong></div>';
- return `<div class="inspector-head"><span class="eyebrow">HISTORICAL PLACE · ${esc(place.id)}</span><button type="button" class="inspector-close" onclick="window.historyMapClearSelection()">×</button></div><h4>${esc(place.name)}</h4><p class="place-description">${esc(place.description||"Պատմական բնակության/կապի վայր՝ ըստ հասանելի կառուցվածքային տվյալների։")}</p><div class="period-stack">${periods}</div><div class="confidence ${conf.className}"><span>${esc(conf.label)}</span><small>${esc(conf.why)}</small></div><div class="place-sources"><strong>Աղբյուր</strong>${sourceMarkup(place)}</div>`;
+ return `<div class="inspector-head"><span class="eyebrow">HISTORICAL PLACE · ${esc(place.id)}</span><button type="button" class="inspector-close" onclick="window.historyMapClearSelection()">×</button></div><h4>${esc(place.name)}</h4><p class="place-description">${esc(place.description||"Historical place of settlement or connection, based on available structured data.")}</p><div class="period-stack">${periods}</div><div class="confidence ${conf.className}"><span>${esc(conf.label)}</span><small>${esc(conf.why)}</small></div><div class="place-sources"><strong>Source</strong>${sourceMarkup(place)}</div>`;
 }
 function showHistoryPlace(place,index){
  const inspector=document.querySelector("#history-inspector");if(!inspector)return;
