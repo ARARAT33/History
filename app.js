@@ -24,7 +24,7 @@ function centuryLabel(y){
 function historicalPeriod(start,end,point,periodLabel){
  const py=periodLabel?String(periodLabel):"";
  const norm=py.toLowerCase();
- const named=norm.includes("middle ages")||norm.includes("միջնադար")||norm.includes("средневек");
+ const named=norm.includes("middle ages")||norm.includes("medieval");
  if(named)return esc(py)+" <span class=\"period-derived\">(approximately 5th–15th centuries)</span>";
  const sy=yearOf(start),ey=yearOf(end),pyear=yearOf(point);
  if(sy!=null&&ey!=null){
@@ -241,7 +241,7 @@ async function renderCountry(mapName,displayName,iso){
    const tabs=languages.map(lang=>'<button type="button" class="lang-tab '+(lang===defaultLang?"active":"")+'" data-lang-tab="'+esc(lang)+'">'+esc(UI_LANG_NAMES[lang]||lang.toUpperCase())+'</button>').join("");
    const panes=languages.map(lang=>languageTabHtml(entity,cd,lang,ethnicRows(comm.ethnic,lang,peopleLinked),religionRows(comm.religions,lang,peopleLinked))).join("");
    const officialNames=cd.officialIds.map(id=>valueLabel(cd.linked,id,"hy")||valueLabel(cd.linked,id,"en")).filter(Boolean);
-   panel.innerHTML='<div class="country-hero"><div class="country-hero-title"><span class="flag-badge">'+esc(isoFlag(iso))+'</span><div><div class="eyebrow">COUNTRY · '+esc(qid)+'</div><h3>'+esc(entityLabel(entity,defaultLang)||displayName||mapName)+'</h3><p>'+esc(displayName||mapName)+(officialNames.length?' · '+esc(officialNames.join(", ")):"")+'</p></div></div><a class="ghost-link" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Wikidata ↗</a></div><div class="language-tabs">'+tabs+'</div><div class="language-panes">'+panes+'</div>'+sourceBadges()+'<div class="history-inspector" id="history-inspector"><div class="inspector-placeholder"><span>✦</span><strong>Select a people</strong><p>Historical locations will appear on the map.</p></div></div><div class="history-legend"><span><i class="legend-red"></i>Պատմական տարածք / տեղադրություն</span><span><i class="legend-gray"></i>Տվյալների որակի նշում</span></div>';
+   panel.innerHTML='<div class="country-hero"><div class="country-hero-title"><span class="flag-badge">'+esc(isoFlag(iso))+'</span><div><div class="eyebrow">COUNTRY · '+esc(qid)+'</div><h3>'+esc(entityLabel(entity,defaultLang)||displayName||mapName)+'</h3><p>'+esc(displayName||mapName)+(officialNames.length?' · '+esc(officialNames.join(", ")):"")+'</p></div></div><a class="ghost-link" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Wikidata ↗</a></div><div class="language-tabs">'+tabs+'</div><div class="language-panes">'+panes+'</div>'+sourceBadges()+'<div class="history-inspector" id="history-inspector"><div class="inspector-placeholder"><span>✦</span><strong>Select a people</strong><p>Historical locations will appear on the map.</p></div></div><div class="history-legend"><span><i class="legend-red"></i>Historical area / location</span><span><i class="legend-gray"></i>Data quality note</span></div>';
    panel.querySelectorAll("[data-lang-tab]").forEach(b=>b.addEventListener("click",()=>activateLanguage(panel,b.dataset.langTab)));
    activateLanguage(panel,defaultLang);
    panel.querySelectorAll(".people-row").forEach(b=>b.addEventListener("click",()=>selectPeopleHistory(b.dataset.peopleId,b.dataset.peopleName)));
