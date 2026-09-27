@@ -19,6 +19,7 @@ async function search(q,root){
  const seen=new Set(),unique=flat.filter(x=>{const k=(x.title||"").toLowerCase()+"|"+x.url;if(seen.has(k))return false;seen.add(k);return true});
  root.innerHTML='<div class="search-summary"><div><span class="eyebrow">OPEN KNOWLEDGE SEARCH</span><h2>'+unique.length+' արդյունք՝ '+esc(q)+'</h2><p>Արդյունքները հավաքվել են '+(sources.length-failed.length)+' աղբյուրից։ Սա ամբողջ ինտերնետի սպառում չէ. որոնվում են միացված բաց շտեմարանները։</p></div><div class="search-source-list">'+sources.filter(s=>!failed.includes(s.name)).map(s=>'<span>'+esc(s.name)+'</span>').join("")+'</div></div>'+(unique.length?'<div class="universal-results-grid">'+unique.map(renderCard).join("")+'</div>':'<div class="empty-state">Այս հարցման համար հասանելի արդյունք չգտնվեց։ Փորձիր այլ լեզվով կամ այլ ձևակերպմամբ։</div>')+(failed.length?'<p class="search-warning">Ժամանակավորապես չպատասխանեցին՝ '+esc(failed.join(", "))+'. Մնացած աղբյուրների արդյունքները ցուցադրված են։</p>':'');
 }
+window.HistorySearch=q=>{const root=$("#universal-search-results");if(root&&q)search(q,root)};
 function init(){
  const form=$("#universal-search-form"),input=$("#universal-search-input"),root=$("#universal-search-results");
  if(!form||!input||!root)return;
