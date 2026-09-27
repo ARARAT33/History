@@ -9,14 +9,27 @@
 <section id="archive-content" class="archive-grid"><div class="archive-empty">Loading archive…</div></section><div id="archive-pages" class="archive-pages"></div>
 </main>
 <script>
-(()=>{const URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json",PAGE=50,esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));const first=(o,k)=>{for(const x of k)if(o?.[x]!=null&&String(o[x]).trim())return o[x];return""};const arr=x=>Array.isArray(x)?x:["items","records","history","archive","data","results"].flatMap(k=>Array.isArray(x?.[k])?x[k]:[]);let all=[],filtered=[],page=1;const root=document.getElementById("archive-content"),s=document.getElementById("archive-search"),count=document.getElementById("archive-count"),pages=document.getElementById("archive-pages");
-function parseMdLink(v){let s=String(v??"").trim();if(s.startsWith("[")&&s.endsWith(")")){const mid=s.indexOf("](");if(mid>0){const label=s.slice(1,mid),url=s.slice(mid+2,-1);if(/^https?:\\/\\//i.test(url))return{label,url}}}return null}
-function normalizeUrl(v){const m=parseMdLink(v);return m?m.url:String(v??"").trim()}
-function linkLabel(v){const m=parseMdLink(v);return m?m.label:String(v??"").trim()}
-function card(o,i){const id=first(o,["id","ID","uuid","identifier"])||"record-"+(i+1),n=first(o,["name","title","label","filename","slug"])||"Untitled",d=first(o,["description","desc","summary"])||"",t=first(o,["text","content","body","article","textContent"])||"",rawLink=first(o,["link","url","href","source"])||"",u=normalizeUrl(rawLink);
-const remaining=Object.entries(o).filter(([k,v])=>v!=null&&v!==""&&![ "id","ID","uuid","identifier","name","title","label","filename","slug","description","desc","summary","text","content","body","article","textContent","link","url","href","source"].includes(k)).map(([k,v])=>"<div><b>"+esc(k)+":</b> "+esc(typeof v==="object"?JSON.stringify(v):v)+"</div>").join("");
-const linkField=rawLink?'<p><b>Link:</b> <a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(linkLabel(rawLink))+'</a></p>':"";
-return '<article class="archive-card"><div class="archive-id">ID · '+esc(id)+'</div><h3>'+esc(n)+'</h3>'+(d?'<p>'+esc(d)+'</p>':"")+(linkField)+(t?'<div class="archive-text">'+esc(t)+'</div>':"")+(remaining?'<div class="archive-text">'+remaining+"</div>":"")+"</article>"}
-function render(){let rows=filtered.slice((page-1)*PAGE,page*PAGE);root.innerHTML=rows.length?rows.map(card).join(""):'<div class="archive-empty">No matching records.</div>';count.textContent=filtered.length+" results";let n=Math.max(1,Math.ceil(filtered.length/PAGE));pages.innerHTML='<button '+(page<=1?"disabled":"")+' data-p="-1">← Previous</button><span>Page '+page+" / "+n+'</span><button '+(page>=n?"disabled":"")+' data-p="1">Next →</button>';pages.querySelectorAll("button").forEach(b=>b.onclick=()=>{page+=Number(b.dataset.p);render();scrollTo({top:0,behavior:"smooth"})})}
-s.oninput=()=>{let q=s.value.trim().toLowerCase();filtered=all.filter(o=>JSON.stringify(o).toLowerCase().includes(q));page=1;render()};fetch(URL,{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{all=arr(d).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(()=>root.innerHTML='<div class="archive-empty">Archive data could not be loaded right now.</div>')})();
+(()=>{"use strict";
+const DATA_URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json",PAGE_SIZE=50;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const first=(o,keys)=>{for(const k of keys)if(o&&o[k]!=null&&String(o[k]).trim())return o[k];return""};
+const rowsOf=d=>Array.isArray(d)?d:["items","records","history","archive","data","results"].flatMap(k=>Array.isArray(d?.[k])?d[k]:[]);
+const safeUrl=v=>{try{const u=new URL(String(v??"").trim());return /^https?:$/.test(u.protocol)?u.href:""}catch{return""}};
+let all=[],filtered=[],page=1;
+const root=document.getElementById("archive-content"),search=document.getElementById("archive-search"),count=document.getElementById("archive-count"),pages=document.getElementById("archive-pages");
+function card(o,i){
+ const id=first(o,["id","ID","uuid","identifier"])||"record-"+(i+1),name=first(o,["name","title","label","filename","slug"])||"Untitled",desc=first(o,["description","desc","summary"])||"No description provided.",raw=first(o,["link","url","href","source"]),url=safeUrl(raw),txt=first(o,["text","content","body","article","textContent"]);
+ const extra=Object.entries(o).filter(([k,v])=>v!=null&&v!==""&&!["id","ID","uuid","identifier","name","title","label","filename","slug","description","desc","summary","link","url","href","source","text","content","body","article","textContent"].includes(k)).map(([k,v])=>"<div><b>"+esc(k)+":</b> "+esc(typeof v==="object"?JSON.stringify(v):v)+"</div>").join("");
+ return '<article class="archive-card"><div class="archive-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3><p>'+esc(desc)+'</p>'+(url?'<div class="archive-link"><b>Link:</b> <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a></div>':"<div class="archive-link"><b>Link:</b> not available</div>")+(txt?'<div class="archive-text">'+esc(txt)+"</div>":"")+(extra?'<div class="archive-text">'+extra+"</div>":"")+"</article>";
+}
+function render(){
+ const total=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE)),rows=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+ root.innerHTML=rows.length?rows.map(card).join(""):'<div class="archive-empty">No matching archive records.</div>';
+ count.textContent=filtered.length+" results";
+ pages.innerHTML='<button type="button" '+(page<=1?"disabled":"")+' data-step="-1">← Previous</button><span>Page '+page+" / "+total+'</span><button type="button" '+(page>=total?"disabled":"")+' data-step="1">Next →</button>';
+ pages.querySelectorAll("button").forEach(b=>b.onclick=()=>{page+=Number(b.dataset.step);render();scrollTo({top:0,behavior:"smooth"})});
+}
+search.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();filtered=all.filter(o=>JSON.stringify(o).toLowerCase().includes(q));page=1;render()});
+fetch(DATA_URL,{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(d=>{all=rowsOf(d).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(e=>{console.error(e);root.innerHTML='<div class="archive-empty">Archive data could not be loaded right now.</div>'});
+})();
 </script><script src="site-tools.js?v=20260927-7"></script></body></html>
