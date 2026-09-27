@@ -286,7 +286,7 @@ function focusCountry(layer){
  const mapName=countryName(layer),displayName=aliases[mapName]||mapName;
  if(mapStatus)mapStatus.textContent=displayName;
  renderCountry(mapName,displayName,layer.feature?.properties?.iso);
- const searchInput=document.querySelector("#universal-search-input");if(searchInput){searchInput.value=displayName;window.HistorySearch?.(displayName);document.querySelector("#universal-search")?.scrollIntoView?.({behavior:"smooth",block:"start"});}
+ window.location.href="search.html?q="+encodeURIComponent(displayName);
  const b=layer.getBounds();
  if(b?.isValid?.())leafletMap.flyToBounds(b,{paddingTopLeft:[20,20],paddingBottomRight:[430,35],maxZoom:7,duration:.9});
 }
