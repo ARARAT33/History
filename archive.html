@@ -1,1 +1,76 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Archive — HISTORY</title><link rel="stylesheet" href="pages.css"></head><body class="page-body"><main class="page-main"><section class="hero-card"><span class="page-kicker">LOCAL WORKSPACE</span><h1>Archive</h1><p>This is an empty local workspace. Nothing is preloaded.</p><label class="action-btn" style="display:inline-block">Choose files<input id="archive-files" type="file" multiple hidden></label><div id="archive-list" class="rank-list" style="margin-top:15px"></div></section></main><script>const input=document.getElementById("archive-files"),list=document.getElementById("archive-list");input?.addEventListener("change",e=>{list.innerHTML=[...e.target.files].map(f=>'<div class="rank-item"><div class="rank-no">FILE</div><div><h3>'+f.name.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))+'</h3><p>'+Math.round(f.size/1024)+' KB</p></div></div>').join("")||'<div class="empty-state">No files selected.</div>'});</script><script src="site-tools.js?v=20260927-4"></script><script>(function(){var s=document.getElementById("history-language");if(!s)return;s.addEventListener("change",function(){var c=this.value;try{localStorage.setItem("history-language",c);}catch(e){}document.cookie="googtrans="+(c==="en"?"; path=/; max-age=0":"/en/"+c+"; path=/; max-age=31536000");location.reload();});})();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archive — HISTORY</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+.archive-wrap{max-width:1200px;margin:0 auto;padding:24px}
+.archive-hero{margin-bottom:24px}
+.archive-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
+.archive-card{padding:20px;border:1px solid rgba(127,127,127,.2);border-radius:18px;background:rgba(255,255,255,.035);box-shadow:0 10px 30px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:12px}
+.archive-card h3{margin:0;font-size:1.15rem;overflow-wrap:anywhere}
+.archive-card p{margin:0;line-height:1.6;opacity:.82;overflow-wrap:anywhere}
+.archive-meta{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.55}
+.archive-link{display:block;overflow-wrap:anywhere;word-break:break-word}
+.archive-link a{font-weight:600}
+.archive-media{padding-top:10px;border-top:1px solid rgba(127,127,127,.16)}
+.archive-empty,.archive-error{padding:28px;border:1px dashed rgba(127,127,127,.35);border-radius:18px;text-align:center;opacity:.8}
+</style>
+</head>
+<body class="page-body">
+<main class="page-main archive-wrap">
+<section class="hero-card archive-hero">
+<span class="page-kicker">HISTORY ARCHIVE</span>
+<h1>Archive</h1>
+<p>Archived historical materials from the AWEArchiveDB database.</p>
+</section>
+<section id="archive-content" class="archive-grid" aria-live="polite">
+<div class="archive-empty">Loading archive records…</div>
+</section>
+</main>
+<script>
+(function(){
+"use strict";
+const DATA_URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const first=(o,keys)=>{for(const k of keys){if(o&&o[k]!=null&&String(o[k]).trim()!=="")return o[k]}return""};
+const asArray=data=>{
+ if(Array.isArray(data))return data;
+ for(const k of ["items","records","history","archive","data","results"])if(Array.isArray(data?.[k]))return data[k];
+ return [];
+};
+function linkHtml(label,url){
+ if(!url)return"";
+ const u=String(url).trim();
+ return '<div class="archive-link"><strong>'+esc(label)+'</strong><br><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u)+'</a></div>';
+}
+function card(item){
+ const name=first(item,["name","title","label","filename","slug"])||"Untitled";
+ const description=first(item,["description","desc","summary"])||"No description provided.";
+ const mainLink=first(item,["link","url","href","source"]);
+ const mediaLink=first(item,["mediaUrl","mediaURL","media","imageUrl","image","videoUrl","video","thumbnail"]);
+ return '<article class="archive-card"><div class="archive-meta">'+esc(item?.type||"archive record")+'</div><h3>'+esc(name)+'</h3><p>'+esc(description)+'</p>'+linkHtml("Link",mainLink)+(mediaLink?'<div class="archive-media">'+linkHtml("Image / video link",mediaLink)+'</div>':"")+'</article>';
+}
+async function load(){
+ const root=document.getElementById("archive-content");
+ try{
+  const res=await fetch(DATA_URL,{cache:"no-store"});
+  if(!res.ok)throw new Error("HTTP "+res.status);
+  const data=await res.json();
+  const rows=asArray(data).filter(x=>x&&typeof x==="object");
+  root.className="archive-grid";
+  root.innerHTML=rows.length?rows.map(card).join(""):'<div class="archive-empty" style="grid-column:1/-1">No archive records are currently available in history.json.</div>';
+ }catch(err){
+  console.error(err);
+  root.className="archive-grid";
+  root.innerHTML='<div class="archive-error" style="grid-column:1/-1">Archive data could not be loaded right now.</div>';
+ }
+}
+load();
+})();
+</script>
+<script src="site-tools.js?v=20260927-4"></script>
+</body>
+</html>
