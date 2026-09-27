@@ -448,15 +448,48 @@ async function renderExplorer(){
  }
  if(ins)ins.innerHTML='<div class="inspector-placeholder"><strong>'+rows.length+'</strong> structured records found for <strong>'+esc(explorerMode)+'</strong> at <strong>'+esc(String(y))+'</strong>. Select an entity for details.</div>';
 }
+async function explorerLocations(qid,mode,year){
+ let q="";
+ if(mode==="peoples") q='SELECT ?country ?countryLabel ?iso ?start ?end WHERE {?country wdt:P297 ?iso. ?country p:P172 ?st. ?st ps:P172 wd:'+qid+'. OPTIONAL{?st pq:P580 ?start.} OPTIONAL{?st pq:P582 ?end.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
+ else if(mode==="languages") q='SELECT ?country ?countryLabel ?iso ?start ?end WHERE {?country wdt:P297 ?iso. {?country p:P37 ?st.} UNION {?country p:P2936 ?st.} ?st ?pred wd:'+qid+'. OPTIONAL{?st pq:P580 ?start.} OPTIONAL{?st pq:P582 ?end.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
+ else if(mode==="animals") q='SELECT ?range ?rangeLabel ?iso WHERE { wd:'+qid+' wdt:P9714 ?range. ?range wdt:P297 ?iso. SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
+ else return [];
+ const rows=await sparql(q).catch(()=>[]);
+ return rows.filter(r=>{const s=yearOf(r.start?.value),e=yearOf(r.end?.value);return !s||!e||(year>=s&&year<=e)});
+}
+function highlightExplorerCountries(rows){
+ if(!geoLayer)return;
+ const wanted=new Set(rows.map(r=>String(r.iso?.value||"").toUpperCase()).filter(Boolean));
+ geoLayer.eachLayer(layer=>{
+   const iso=String(layer.feature?.properties?.iso||layer.feature?.properties?.ISO_A2||"").toUpperCase();
+   if(wanted.has(iso))styleLayer(layer,{color:"#ffd9ce",weight:2.5,fillColor:"#d76545",fillOpacity:.7});
+   else if(layer!==selectedLayer)styleLayer(layer,countryStyle(layer.feature));
+ });
+ return wanted.size;
+}
 async function selectExplorerEntity(qid,name){
  const ins=document.querySelector("#history-inspector");if(!ins)return;
  ins.innerHTML='<div class="inspector-placeholder">Loading '+esc(name)+'…</div>';
- const e=(await getEntities([qid],["en","hy","ru"]))[qid]||{};
- const cl=e.claims||{}, inception=prop(cl,"P571")[0]?.mainsnak?.datavalue?.value, extinction=prop(cl,"P576")[0]?.mainsnak?.datavalue?.value;
- const desc=e.descriptions?.en?.value||"No English description available.";
- const coords=prop(cl,"P625")[0]?.mainsnak?.datavalue?.value;
- const sources='<div class="history-sources">Primary structured data: <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'">Wikidata '+esc(qid)+'</a>. Dates may be approximate because Wikidata stores date precision and qualifiers rather than a guaranteed continuous historical boundary.</div>';
- ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(desc)+'</p><div class="history-facts"><div class="history-fact"><span>Type</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Origin / inception</span><strong>'+esc(inception?formatYear(yearOf(inception)):"Unknown")+'</strong></div><div class="history-fact"><span>End / extinction</span><strong>'+esc(extinction?formatYear(yearOf(extinction)):"Not recorded")+'</strong></div><div class="history-fact"><span>Coordinates</span><strong>'+esc(coords||"Not recorded")+'</strong></div></div>'+sources;
+ const e=(await getEntities([qid],["en","hy","ru"]))[qid]||{},cl=e.claims||{};
+ const inception=prop(cl,"P571")[0]?.mainsnak?.datavalue?.value,extinction=prop(cl,"P576")[0]?.mainsnak?.datavalue?.value;
+ const desc=e.descriptions?.en?.value||"No English description available.",coords=prop(cl,"P625")[0]?.mainsnak?.datavalue?.value;
+ const y=Number(document.querySelector("#history-year")?.value||2026);
+ const locRows=await explorerLocations(qid,explorerMode,y),countryCount=highlightExplorerCountries(locRows);
+ let extra="";
+ if(explorerMode==="languages"){
+   const familyIds=prop(cl,"P279").map(claimId).filter(Boolean),fe=await getEntities(familyIds,["en"]);
+   const families=familyIds.map(id=>fe[id]?.labels?.en?.value).filter(Boolean);
+   const speakers=prop(cl,"P1098").map(claimNumber).filter(x=>x!=null);
+   extra='<div class="history-facts"><div class="history-fact"><span>Language family / parent</span><strong>'+esc(families.join(", ")||"Not recorded")+'</strong></div><div class="history-fact"><span>Recorded speakers</span><strong>'+esc(speakers.length?fmt(speakers[speakers.length-1]):"Not recorded")+'</strong></div><div class="history-fact"><span>Countries / territories</span><strong>'+countryCount+'</strong></div></div>';
+ }else if(explorerMode==="peoples"){
+   extra='<div class="history-facts"><div class="history-fact"><span>Countries linked in structured data</span><strong>'+countryCount+'</strong></div><div class="history-fact"><span>Historical location records</span><strong>'+locRows.length+'</strong></div></div>';
+ }else if(explorerMode==="animals"){
+   extra='<div class="history-facts"><div class="history-fact"><span>Recorded range areas</span><strong>'+locRows.length+'</strong></div><div class="history-fact"><span>Extinction / end record</span><strong>'+esc(extinction?formatYear(yearOf(extinction)):"Not recorded")+'</strong></div></div>';
+ }else{
+   extra='<div class="history-facts"><div class="history-fact"><span>Map geometry</span><strong>Country geometry</strong></div><div class="history-fact"><span>Historical boundary certainty</span><strong>Source-dependent</strong></div></div>';
+ }
+ const timelineStart=inception?yearOf(inception):-5000,timelineEnd=extinction?yearOf(extinction):2026;
+ ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(desc)+'</p>'+extra+'<div class="history-facts"><div class="history-fact"><span>Origin / inception</span><strong>'+esc(inception?formatYear(yearOf(inception)):"Unknown")+'</strong></div><div class="history-fact"><span>End / extinction</span><strong>'+esc(extinction?formatYear(yearOf(extinction)):"Not recorded")+'</strong></div><div class="history-fact"><span>Timeline</span><strong>'+esc(formatYear(timelineStart))+' → '+esc(formatYear(timelineEnd))+'</strong></div><div class="history-fact"><span>Coordinates</span><strong>'+esc(coords||"Not recorded")+'</strong></div></div><div class="history-sources">Structured data: <a target="_blank" rel="noopener" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'">Wikidata '+esc(qid)+'</a>. Time filters use statement qualifiers where available; missing historical boundaries are not invented.</div>';
 }
 function initExplorer(){
  const root=document.querySelector("#history-explorer");if(!root)return;
