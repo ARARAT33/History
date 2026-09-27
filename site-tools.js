@@ -6,7 +6,7 @@ function header(){
  document.querySelectorAll(".history-site-header").forEach(x=>x.remove());
  document.querySelectorAll("body>header.page-hero, body>.page-hero").forEach(x=>x.remove());
  const h=document.createElement("header");h.className="history-site-header";
- h.innerHTML='<a class="history-brand" href="index.html">HISTORY</a><nav class="history-nav"><a href="index.html">Map</a><a href="search.html">Search</a><a href="archive.html">Archive</a><a href="sources.html">Sources</a><a href="links.html">Links</a><a href="about.html">About</a></nav><div class="history-actions"><label class="history-language"><span>Language</span><select id="history-language">'+LANGS.map(([n,c])=>'<option value="'+c+'">'+n+'</option>').join("")+'</select></label><div class="history-reading"><button id="history-smaller" type="button">A−</button><button id="history-larger" type="button">A+</button></div></div>';
+ h.innerHTML='<a class="history-brand" href="index.html">HISTORY</a><nav class="history-nav"><a href="index.html">Map</a><a href="search.html">Search</a><a href="archive.html">Archive</a><a href="sources.html">Sources</a><a href="links.html">History</a><a href="about.html">About</a></nav><div class="history-actions"><label class="history-language"><span>Language</span><select id="history-language">'+LANGS.map(([n,c])=>'<option value="'+c+'">'+n+'</option>').join("")+'</select></label><div class="history-reading"><button id="history-smaller" type="button">A−</button><button id="history-larger" type="button">A+</button></div></div>';
  document.body.prepend(h);
 }
 function footer(){
