@@ -12,7 +12,7 @@ const timeValue=v=>v?.time||v||"";
 const yearOf=v=>{const m=String(timeValue(v)).match(new RegExp("[-+](\\d+)"));return m?Number(m[1]):null};
 const precisionOf=v=>Number(v?.precision||0);
 const exactDate=v=>{const s=String(timeValue(v));const m=s.match(new RegExp("[-+](\\d{1,6})-(\\d{2})-(\\d{2})"));if(!m)return yearOf(v);return Number(m[1])};
-const formatYear=y=>{if(y==null)return "";const n=Math.abs(y);return y<0?"մ.թ.ա. "+n:"մ.թ. "+n};
+const formatYear=y=>{if(y==null)return "";const n=Math.abs(y);return y<0?n+" BCE":n+" CE";};
 function centuryLabel(y){
  if(y==null)return "";
  const n=Math.abs(y);
@@ -25,7 +25,7 @@ function historicalPeriod(start,end,point,periodLabel){
  const py=periodLabel?String(periodLabel):"";
  const norm=py.toLowerCase();
  const named=norm.includes("middle ages")||norm.includes("միջնադար")||norm.includes("средневек");
- if(named)return esc(py)+" <span class=\"period-derived\">(approximately V–XV դարեր)</span>";
+ if(named)return esc(py)+" <span class=\"period-derived\">(approximately 5th–15th centuries)</span>";
  const sy=yearOf(start),ey=yearOf(end),pyear=yearOf(point);
  if(sy!=null&&ey!=null){
    const exact=(precisionOf(start)>=9&&precisionOf(end)>=9);
@@ -199,7 +199,7 @@ function ethnicRows(rows,lang,entities){
    const pct=x.value?.value!=null?String(Math.round(Number(x.value.value)*10000)/100).replaceAll(".0","")+"%":"";
    const d=x.date?.value?claimDate({qualifiers:{P585:[{datavalue:{value:x.date.value}}]}}):"";
    const period=x.periodLabel?.value?x.periodLabel.value:"";
-   return '<button type="button" class="people-row" data-people-id="'+esc(id)+'" data-people-name="'+esc(n)+'"><span><strong>'+esc(n)+'</strong><small>'+([pct,d,period].filter(Boolean).map(esc).join(" · ")||"Տվյալների մանրամասներ")+'</small></span><b>→</b></button>';
+   return '<button type="button" class="people-row" data-people-id="'+esc(id)+'" data-people-name="'+esc(n)+'"><span><strong>'+esc(n)+'</strong><small>'+([pct,d,period].filter(Boolean).map(esc).join(" · ")||"Data details")+'</small></span><b>→</b></button>';
  }).join("")||'<div class="empty-data">Այս լեզվով կառուցվածքային ազգաբանական տվյալներ չկան։</div>';
 }
 function religionRows(rows,lang,entities){
@@ -237,7 +237,7 @@ async function renderCountry(mapName,displayName,iso){
    const peopleIds=[...new Set([...comm.ethnic.map(x=>x.ethnic?.value?.split("/").pop()),...comm.religions.map(x=>x.religion?.value?.split("/").pop())].filter(Boolean))];
    const peopleLinked=await getEntities(peopleIds,[...new Set(["hy","en","ru",...cd.target])]);
    const languages=[...new Set(["hy","en","ru",...cd.target])].filter(l=>entityLabel(entity,l));
-   const defaultLang=languages.includes("hy")?"hy":languages.includes("en")?"en":languages[0];
+   const defaultLang=languages.includes("en")?"en":languages.includes("hy")?"hy":languages[0];
    const tabs=languages.map(lang=>'<button type="button" class="lang-tab '+(lang===defaultLang?"active":"")+'" data-lang-tab="'+esc(lang)+'">'+esc(UI_LANG_NAMES[lang]||lang.toUpperCase())+'</button>').join("");
    const panes=languages.map(lang=>languageTabHtml(entity,cd,lang,ethnicRows(comm.ethnic,lang,peopleLinked),religionRows(comm.religions,lang,peopleLinked))).join("");
    const officialNames=cd.officialIds.map(id=>valueLabel(cd.linked,id,"hy")||valueLabel(cd.linked,id,"en")).filter(Boolean);
@@ -339,7 +339,7 @@ async function historicalPlacesFor(qid){
  try{
    const eq=await sparql('SELECT ?geo ?coord WHERE { wd:'+qid+' OPTIONAL{wd:'+qid+' wdt:P3896 ?geo.} OPTIONAL{wd:'+qid+' wdt:P625 ?coord.}} LIMIT 10');
    for(const r of eq){
-     if(!map.has("__entity__"))map.set("__entity__",{id:"__entity__",name:"Ընտրված ժողովուրդ",description:"Wikidata geoshape",coord:r.coord?.value||"",geo:r.geo?.value||"",periods:[],sources:[]});
+     if(!map.has("__entity__"))map.set("__entity__",{id:"__entity__",name:"Selected people",description:"Wikidata geoshape",coord:r.coord?.value||"",geo:r.geo?.value||"",periods:[],sources:[]});
    }
  }catch(_){}
  return [...map.values()].filter(x=>x.geo||x.coord);
