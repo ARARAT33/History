@@ -560,7 +560,7 @@ function formatExplorerDateInput(y){
  }
  return String(y);
 }
-function initExplorer(){
+async function initExplorer(){
  const root=document.querySelector("#history-explorer");if(!root)return;
  if(window.__historyMapReady){try{await window.__historyMapReady}catch(_){}}
 
