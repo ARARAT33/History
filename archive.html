@@ -1,28 +1,16 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Archive — HISTORY</title><link rel="stylesheet" href="pages.css">
 <style>
-.archive-wrap{max-width:1100px;margin:0 auto;padding:24px}.archive-hero{margin-bottom:24px}
-.archive-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
-.archive-card{padding:24px;border:1px solid rgba(127,127,127,.2);border-radius:20px;background:rgba(255,255,255,.035);box-shadow:0 12px 35px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:12px}
-.archive-card h3{margin:0;font-size:1.25rem;overflow-wrap:anywhere}.archive-card p{margin:0;line-height:1.7;opacity:.84;overflow-wrap:anywhere}
-.archive-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.76rem;opacity:.6;overflow-wrap:anywhere}
-.archive-text{padding-top:14px;border-top:1px solid rgba(127,127,127,.16);white-space:pre-wrap;line-height:1.75;overflow-wrap:anywhere}
-.archive-empty,.archive-error{padding:28px;border:1px dashed rgba(127,127,127,.35);border-radius:18px;text-align:center;opacity:.8}
-</style></head><body class="page-body">
-<main class="page-main archive-wrap">
-<section class="hero-card archive-hero"><span class="page-kicker">HISTORY ARCHIVE</span><h1>Archive</h1><p>Names, descriptions and text from the AWEArchiveDB archive.</p></section>
-<section id="archive-content" class="archive-grid" aria-live="polite"><div class="archive-empty">Loading archive records…</div></section>
+.archive-wrap{max-width:1280px;margin:auto;padding:22px}.archive-hero{margin-bottom:18px}.archive-tools{display:flex;gap:10px;align-items:center;margin-bottom:20px}.archive-search{flex:1;padding:13px 16px;border:1px solid rgba(127,127,127,.25);border-radius:13px;background:rgba(255,255,255,.05);color:inherit;font:inherit}.archive-count{opacity:.7}.archive-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.archive-card{min-width:0;padding:19px;border:1px solid rgba(127,127,127,.2);border-radius:18px;background:rgba(255,255,255,.035);box-shadow:0 9px 28px rgba(0,0,0,.07)}.archive-id{font:600 .72rem ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.55;overflow-wrap:anywhere}.archive-card h3{margin:8px 0;font-size:1.12rem;overflow-wrap:anywhere}.archive-card p{margin:0;line-height:1.6;opacity:.82}.archive-text{margin-top:12px;padding-top:12px;border-top:1px solid rgba(127,127,127,.16);white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}.archive-empty{grid-column:1/-1;padding:30px;text-align:center;opacity:.7}.archive-pages{display:flex;justify-content:center;align-items:center;gap:10px;margin:22px}.archive-pages button{padding:9px 14px;border:1px solid rgba(127,127,127,.25);border-radius:10px;background:transparent;color:inherit;cursor:pointer}.archive-pages button:disabled{opacity:.35}@media(max-width:900px){.archive-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.archive-grid{grid-template-columns:1fr}}
+</style></head><body class="page-body"><main class="page-main archive-wrap">
+<section class="hero-card archive-hero"><span class="page-kicker">HISTORY ARCHIVE</span><h1>Archive</h1><p>Browse names, descriptions and text from the history archive.</p></section>
+<div class="archive-tools"><input id="archive-search" class="archive-search" type="search" placeholder="Search archive…" aria-label="Search archive"><span id="archive-count" class="archive-count"></span></div>
+<section id="archive-content" class="archive-grid"><div class="archive-empty">Loading archive…</div></section><div id="archive-pages" class="archive-pages"></div>
 </main>
 <script>
-(function(){
-"use strict";const DATA_URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json");
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-const first=(o,keys)=>{for(const k of keys){if(o&&o[k]!=null&&String(o[k]).trim()!=="")return o[k]}return""};
-const asArray=data=>{if(Array.isArray(data))return data;for(const k of ["items","records","history","archive","data","results"])if(Array.isArray(data?.[k]))return data[k];return[]};
-function card(item,index){const id=first(item,["id","ID","uuid","identifier"])||("record-"+(index+1));const name=first(item,["name","title","label","filename","slug"])||"Untitled";const description=first(item,["description","desc","summary"])||"";const body=first(item,["text","content","body","article","textContent"])||"";return '<article class="archive-card"><div class="archive-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3>'+(description?'<p>'+esc(description)+'</p>':"")+(body?'<div class="archive-text">'+esc(body)+'</div>':"")+"</article>"}
-async function load(){const root=document.getElementById("archive-content");try{const res=await fetch(DATA_URL,{cache:"no-store"});if(!res.ok)throw Error("HTTP "+res.status);const rows=asArray(await res.json()).filter(x=>x&&typeof x==="object");root.innerHTML=rows.length?rows.map(card).join(""):'<div class="archive-empty" style="grid-column:1/-1">No archive records are currently available.</div>'}catch(e){console.error(e);root.innerHTML='<div class="archive-error" style="grid-column:1/-1">Archive data could not be loaded right now.</div>'}}load();
-})();
-</script><script src="site-tools.js?v=20260927-4"></script></body></html>
+(()=>{const URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json",PAGE=50,esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));const first=(o,k)=>{for(const x of k)if(o?.[x]!=null&&String(o[x]).trim())return o[x];return""};const arr=x=>Array.isArray(x)?x:["items","records","history","archive","data","results"].flatMap(k=>Array.isArray(x?.[k])?x[k]:[]);let all=[],filtered=[],page=1;const root=document.getElementById("archive-content"),s=document.getElementById("archive-search"),count=document.getElementById("archive-count"),pages=document.getElementById("archive-pages");
+function card(o,i){let id=first(o,["id","ID","uuid","identifier"])||"record-"+(i+1),n=first(o,["name","title","label","filename","slug"])||"Untitled",d=first(o,["description","desc","summary"])||"",t=first(o,["text","content","body","article","textContent"])||"";return '<article class="archive-card"><div class="archive-id">ID · '+esc(id)+'</div><h3>'+esc(n)+'</h3>'+(d?'<p>'+esc(d)+'</p>':"")+(t?'<div class="archive-text">'+esc(t)+"</div>":"")+"</article>"}
+function render(){let rows=filtered.slice((page-1)*PAGE,page*PAGE);root.innerHTML=rows.length?rows.map(card).join(""):'<div class="archive-empty">No matching records.</div>';count.textContent=filtered.length+" results";let n=Math.max(1,Math.ceil(filtered.length/PAGE));pages.innerHTML='<button '+(page<=1?"disabled":"")+' data-p="-1">← Previous</button><span>Page '+page+" / "+n+'</span><button '+(page>=n?"disabled":"")+' data-p="1">Next →</button>';pages.querySelectorAll("button").forEach(b=>b.onclick=()=>{page+=Number(b.dataset.p);render();scrollTo({top:0,behavior:"smooth"})})}
+s.oninput=()=>{let q=s.value.trim().toLowerCase();filtered=all.filter(o=>JSON.stringify(o).toLowerCase().includes(q));page=1;render()};fetch(URL,{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{all=arr(d).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(()=>root.innerHTML='<div class="archive-empty">Archive data could not be loaded right now.</div>')})();
+</script><script src="site-tools.js?v=20260927-5"></script></body></html>
