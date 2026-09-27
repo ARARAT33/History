@@ -17,7 +17,7 @@
 <section id="history-db-content" class="history-db-grid"><div class="history-empty">Loading history…</div></section><div id="history-pages" class="history-pages"></div>
 </main>
 <script>
-(()=>{const URLS=["https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json","https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json"],PAGE=50;
+(()=>{const URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json",PAGE=50;
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));const first=(o,k)=>{for(const x of k)if(o?.[x]!=null&&String(o[x]).trim())return o[x];return""};
 const arr=x=>Array.isArray(x)?x:["items","records","history","pages","archive","data","results"].flatMap(k=>Array.isArray(x?.[k])?x[k]:[]);
 const yt=u=>{try{let x=new URL(u),id=x.hostname.includes("youtu.be")?x.pathname.slice(1):x.searchParams.get("v");return id?"https://www.youtube.com/embed/"+encodeURIComponent(id):""}catch{return""}};
@@ -27,5 +27,5 @@ function card(o,i){let id=first(o,["id","ID","uuid","identifier"])||"record-"+(i
 return '<article class="history-db-card"><div class="history-db-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3><p>'+esc(d||"No description provided.")+'</p>'+preview(u)+(u?'<div class="history-actions"><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">Open website ↗</a></div>':"")+(extra?'<div class="history-db-extra">'+extra+"</div>":"")+"</article>"}
 function render(){let start=(page-1)*PAGE,rows=filtered.slice(start,start+PAGE);root.innerHTML=rows.length?rows.map(card).join(""):'<div class="history-empty">No matching records.</div>';count.textContent=filtered.length+" results";let n=Math.max(1,Math.ceil(filtered.length/PAGE));pages.innerHTML='<button '+(page<=1?"disabled":"")+' data-p="-1">← Previous</button><span>Page '+page+" / "+n+'</span><button '+(page>=n?"disabled":"")+' data-p="1">Next →</button>';pages.querySelectorAll("button").forEach(b=>b.onclick=()=>{page+=Number(b.dataset.p);render();scrollTo({top:0,behavior:"smooth"})})}
 search.oninput=()=>{let q=search.value.trim().toLowerCase();filtered=all.filter(o=>JSON.stringify(o).toLowerCase().includes(q));page=1;render()};
-Promise.all(URLS.map(u=>fetch(u,{cache:"no-store"}).then(r=>r.ok?r.json():[]))).then(ds=>{all=ds.flatMap(arr).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(()=>root.innerHTML='<div class="history-empty">History data could not be loaded right now.</div>')})();
+fetch(URL,{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(d=>{all=arr(d).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(()=>root.innerHTML='<div class="history-empty">History data could not be loaded right now.</div>')})();
 </script><script src="site-tools.js?v=20260927-5"></script></body></html>
