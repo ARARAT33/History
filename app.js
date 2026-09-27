@@ -562,7 +562,7 @@ function formatExplorerDateInput(y){
 }
 async function initExplorer(){
  const root=document.querySelector("#history-explorer");if(!root)return;
- if(window.__historyMapReady){try{await window.__historyMapReady}catch(_){}}
+ if(!geoLayer){setTimeout(initExplorer,100);return;}
 
  document.querySelectorAll(".explorer-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".explorer-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");explorerMode=b.dataset.mode;renderExplorer()}));
  const slider=document.querySelector("#history-slider"),year=document.querySelector("#history-year"),cur=document.querySelector("#history-current");
