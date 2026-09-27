@@ -13,7 +13,13 @@ const params=new URLSearchParams(location.search),query=params.get("q")||"",chos
 const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\p{L}\p{N}]+/gu," ").trim();
 const similarity=(a,b)=>{const A=new Set(norm(a).split(" ").filter(x=>x.length>2)),B=new Set(norm(b).split(" ").filter(x=>x.length>2));if(!A.size||!B.size)return norm(a)===norm(b);let n=0;for(const x of A)if(B.has(x))n++;return n/Math.min(A.size,B.size)};
 const group=items=>{const out=[];for(const item of items){let g=out.find(x=>similarity(x.title,item.title)>=.72);if(!g){g={title:item.title,items:[],image:item.image||null};out.push(g)}g.items.push(item);if(!g.image&&item.image)g.image=item.image}return out};
-const searchAll=q=>Promise.all(sources.map(async s=>{try{const r=await fetch(s.url(q));return r.ok?s.parse(await r.json()):[]}catch(_){return[]}})).then(x=>x.flat());
+const searchAll=q=>Promise.all(sources.map(async s=>{
+ try{
+  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),7000);
+  const r=await fetch(s.url(q),{signal:ctl.signal,headers:{"Accept":"application/json"}});
+  clearTimeout(timer);if(!r.ok)return[];return s.parse(await r.json());
+ }catch(_){return[]}
+})).then(x=>x.flat());
 function resultCard(g){
  return '<article class="universal-result">'+(g.image?'<img loading="lazy" src="'+esc(g.image)+'" alt="">':"")+'<div class="universal-result-body"><span class="universal-source">'+g.items.length+" source record"+(g.items.length===1?"":"s")+'</span><h3><a href="result.html?q='+encodeURIComponent(query)+'&title='+encodeURIComponent(g.title)+'">'+esc(g.title)+'</a></h3><p>'+esc((g.items.find(x=>x.desc)?.desc||"No description returned.").slice(0,420))+'</p><a class="universal-open" href="result.html?q='+encodeURIComponent(query)+'&title='+encodeURIComponent(g.title)+'">Open record ↗</a></div></article>';
 }
