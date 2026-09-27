@@ -1,1 +1,46 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Search — HISTORY</title><link rel="stylesheet" href="style.css"></head><body class="search-page"><main class="search-main"><section class="universal-search-head"><div class="eyebrow">OPEN KNOWLEDGE SEARCH</div><h1>Search</h1><p>Search exactly what you type across public encyclopedic, media, archive and research sources.</p><form id="universal-search-form" class="universal-search-form"><input id="universal-search-input" type="search" placeholder="Type anything…" autocomplete="off" required><button type="submit">Search</button></form></section><div id="universal-search-results" class="universal-search-results"></div></main><script src="search.js?v=20260927-5"></script><script src="site-tools.js?v=20260927-6"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="HISTORY — unified search across historical texts, images, videos, documents and public sources.">
+<title>Unified Search — HISTORY</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.unified-page{max-width:1180px;margin:0 auto;padding:34px 20px 60px}
+.unified-head{text-align:center;padding:30px 0 22px}.unified-head h1{font-size:clamp(32px,5vw,58px);margin:8px 0}.unified-head p{max-width:760px;margin:0 auto;color:#777;line-height:1.6}
+.unified-form{display:flex;gap:10px;max-width:900px;margin:24px auto 0}.unified-form input{flex:1;min-width:0;padding:15px 17px;border:1px solid #ddd;border-radius:13px;font-size:16px}.unified-form button{padding:15px 22px;border:0;border-radius:13px;font-weight:800;cursor:pointer}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.filter{border:1px solid #ddd;background:#fff;border-radius:999px;padding:8px 13px;cursor:pointer}.filter.active{background:#171514;color:#fff}
+.search-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:20px 0 12px;color:#777}.source-badges{display:flex;gap:6px;flex-wrap:wrap}.source-badges span{background:#f1efec;border-radius:999px;padding:5px 9px;font-size:11px}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}.result{border:1px solid #ddd;border-radius:16px;background:#fff;overflow:hidden}.result-media{aspect-ratio:16/9;background:#f2f0ed;display:flex;align-items:center;justify-content:center;overflow:hidden}.result-media img{width:100%;height:100%;object-fit:cover}.result-body{padding:15px}.result-type{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#a04a32}.result h3{margin:6px 0 8px;font-size:18px}.result h3 a{text-decoration:none;color:inherit}.result p{color:#666;line-height:1.5;margin:0 0 12px}.result-source{font-size:12px;color:#888}.open-source{display:inline-block;margin-top:12px;font-weight:700;text-decoration:none}
+.section-title{margin:34px 0 12px}.section-title h2{margin:0}.source-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.source-item{border:1px solid #ddd;border-radius:13px;padding:14px;background:#fff}.source-item strong{display:block}.source-item span{display:block;color:#777;font-size:12px;margin-top:4px}
+.empty{padding:35px 15px;text-align:center;color:#777;border:1px dashed #ccc;border-radius:15px}
+@media(max-width:650px){.unified-form{flex-direction:column}.unified-form button{width:100%}}
+</style>
+</head>
+<body class="search-page">
+<main class="unified-page">
+<section class="unified-head">
+<div class="eyebrow">HISTORY · UNIFIED SOURCE SEARCH</div>
+<h1>Search everything</h1>
+<p>Մի որոնում՝ պատմական տեքստերի, նկարների, վիդեոների, փաստաթղթերի և բաց աղբյուրների համար։ Արդյունքները բերվում են անմիջապես համապատասխան հանրային աղբյուրներից։</p>
+<form id="unified-search-form" class="unified-form">
+<input id="unified-search-input" type="search" placeholder="Գրիր անուն, իրադարձություն, պետություն, ժողովուրդ…" autocomplete="off" required>
+<button type="submit">Search</button>
+</form>
+<div id="search-filters" class="filters">
+<button class="filter active" data-type="all" type="button">All</button>
+<button class="filter" data-type="text" type="button">Texts</button>
+<button class="filter" data-type="image" type="button">Images</button>
+<button class="filter" data-type="video" type="button">Videos</button>
+<button class="filter" data-type="document" type="button">Documents</button>
+</div>
+</section>
+<section id="unified-search-results">
+<div class="empty"><strong>Գրիր որոնման բառը։</strong><p>Որոնումը միաժամանակ կստուգի բոլոր միացված աղբյուրները։</p></div>
+</section>
+<section class="section-title"><h2>Աղբյուրներ</h2><p>Այս նույն որոնումը օգտագործում է ստորև նշված հանրային աղբյուրները։</p></section>
+<section id="unified-sources" class="source-list"></section>
+</main>
+<script src="search.js?v=20260927-8"></script>
+<script src="site-tools.js?v=20260927-8"></script>
+</body></html>
