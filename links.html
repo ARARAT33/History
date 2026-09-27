@@ -1,11 +1,44 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Links — HISTORY</title><link rel="stylesheet" href="pages.css">
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Links — HISTORY</title>
+<link rel="stylesheet" href="pages.css">
 <style>
-.links-wrap{max-width:1280px;margin:auto;padding:22px}.links-hero{margin-bottom:18px}.links-tools{display:flex;gap:10px;align-items:center;margin-bottom:20px;padding:12px;border:1px solid rgba(127,127,127,.2);border-radius:16px;background:rgba(255,255,255,.08);position:sticky;top:72px;z-index:20;backdrop-filter:blur(12px)}.links-search{flex:1;padding:13px 16px;border:1px solid rgba(127,127,127,.25);border-radius:13px;background:rgba(255,255,255,.05);color:inherit;font:inherit}.links-count{opacity:.7}.links-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.links-card{min-width:0;padding:17px;border:1px solid rgba(127,127,127,.2);border-radius:18px;background:rgba(255,255,255,.035);box-shadow:0 9px 28px rgba(0,0,0,.07)}.links-id{font:600 .72rem ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.55;overflow-wrap:anywhere}.links-card h3{margin:8px 0;font-size:1.12rem;overflow-wrap:anywhere}.links-card p{margin:0;line-height:1.55;opacity:.82}.links-link{margin-top:10px;overflow-wrap:anywhere}.links-preview{margin-top:12px;border-top:1px solid rgba(127,127,127,.16);padding-top:10px}.links-preview iframe{display:block;width:100%;height:330px;border:0;border-radius:12px;background:#111}.links-actions{margin-top:10px}.links-actions a{display:inline-flex;padding:9px 12px;border-radius:10px;text-decoration:none;border:1px solid rgba(127,127,127,.25);font-weight:600}.links-empty{grid-column:1/-1;padding:30px;text-align:center;opacity:.7}.links-pages{display:flex;justify-content:center;align-items:center;gap:10px;margin:22px 0}.links-pages button{padding:9px 14px;border:1px solid rgba(127,127,127,.25);border-radius:10px;background:transparent;color:inherit;cursor:pointer}.links-pages button:disabled{opacity:.35}@media(max-width:900px){.links-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.links-grid{grid-template-columns:1fr}}
-</style></head><body class="page-body"><main class="page-main links-wrap">
-<section class="hero-card links-hero"><span class="page-kicker">HISTORY LINKS</span><h1>Links</h1><p>Browse links from the GitHub page-history database.</p></section>
-<div class="links-tools"><input id="links-search" class="links-search" type="search" placeholder="Search this Links page…" aria-label="Search Links"><span id="links-count" class="links-count"></span></div>
-<section id="links-content" class="links-grid"><div class="links-empty">Loading links…</div></section><div id="links-pages" class="links-pages"></div>
+.links-page{max-width:1280px;margin:auto;padding:24px}
+.links-searchbar{position:sticky;top:12px;z-index:20;display:flex;gap:10px;margin:0 0 22px;padding:12px;border:1px solid rgba(127,127,127,.22);border-radius:14px;background:rgba(20,20,20,.88);backdrop-filter:blur(12px)}
+.links-searchbar input{flex:1;min-width:0;padding:13px 15px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font:inherit;outline:none}
+.links-searchbar span{align-self:center;white-space:nowrap;opacity:.7;font-size:.9rem}
+.links-list{display:grid;gap:18px}
+.links-item{padding:18px;border:1px solid rgba(127,127,127,.2);border-radius:16px;background:rgba(255,255,255,.035)}
+.links-item h2{margin:0 0 8px;font-size:1.15rem;overflow-wrap:anywhere}
+.links-item p{margin:0 0 10px;line-height:1.55;opacity:.82}
+.links-url{display:block;margin-bottom:12px;overflow-wrap:anywhere}
+.links-url a{word-break:break-all}
+.links-frame{width:100%;height:360px;border:0;border-radius:12px;background:#111}
+.links-open{display:inline-block;margin-top:10px;padding:8px 11px;border:1px solid rgba(127,127,127,.25);border-radius:9px;text-decoration:none}
+.links-empty{text-align:center;padding:35px;opacity:.7}
+.links-pages{display:flex;justify-content:center;gap:10px;align-items:center;margin:22px 0}
+.links-pages button{padding:9px 14px;border:1px solid rgba(127,127,127,.25);border-radius:9px;background:transparent;color:inherit;cursor:pointer}
+.links-pages button:disabled{opacity:.35;cursor:not-allowed}
+</style>
+</head>
+<body class="page-body">
+<main class="page-main links-page">
+<section class="hero-card" style="margin-bottom:18px">
+<span class="page-kicker">HISTORY LINKS</span>
+<h1>Links</h1>
+<p>Links loaded directly from AWEArchiveDB pagehistory.json.</p>
+</section>
+<div class="links-searchbar">
+<input id="links-search" type="search" placeholder="Search this page…" aria-label="Search Links">
+<span id="links-count"></span>
+</div>
+<section id="links-list" class="links-list"><div class="links-empty">Loading…</div></section>
+<div id="links-pages" class="links-pages"></div>
 </main>
-<script src="links.js?v=20260927-9"></script><script src="site-tools.js?v=20260927-8"></script></body></html>
+<script src="links.js?v=20260927-10"></script>
+<script src="site-tools.js?v=20260927-8"></script>
+</body>
+</html>
