@@ -243,7 +243,7 @@ async function renderCountry(mapName,displayName,iso){
    const tabs=languages.map(lang=>'<button type="button" class="lang-tab '+(lang===defaultLang?"active":"")+'" data-lang-tab="'+esc(lang)+'">'+esc(UI_LANG_NAMES[lang]||lang.toUpperCase())+'</button>').join("");
    const panes=languages.map(lang=>languageTabHtml(entity,cd,lang,ethnicRows(comm.ethnic,lang,peopleLinked),religionRows(comm.religions,lang,peopleLinked))).join("");
    const officialNames=cd.officialIds.map(id=>valueLabel(cd.linked,id,"hy")||valueLabel(cd.linked,id,"en")).filter(Boolean);
-   panel.innerHTML='<div class="country-hero"><div class="country-hero-title"><span class="flag-badge">'+esc(isoFlag(iso))+'</span><div><div class="eyebrow">COUNTRY · '+esc(qid)+'</div><h3>'+esc(entityLabel(entity,defaultLang)||displayName||mapName)+'</h3><p>'+esc(displayName||mapName)+(officialNames.length?' · '+esc(officialNames.join(", ")):"")+'</p></div></div><a class="ghost-link" href="https://www.wikidata.org/wiki/'+encodeURIComponent(resolvedQid||qid)+'" target="_blank" rel="noopener">Wikidata ↗</a></div><div class="language-tabs">'+tabs+'</div><div class="language-panes">'+panes+'</div>'+sourceBadges()+'<div class="history-inspector" id="history-inspector"><div class="inspector-placeholder"><span>✦</span><strong>Select a people</strong><p>Historical locations will appear on the map.</p></div></div><div class="history-legend"><span><i class="legend-red"></i>Historical area / location</span><span><i class="legend-gray"></i>Data quality note</span></div>';
+   panel.innerHTML='<div class="country-hero"><div class="country-hero-title"><span class="flag-badge">'+esc(isoFlag(iso))+'</span><div><div class="eyebrow">COUNTRY · '+esc(qid)+'</div><h3>'+esc(entityLabel(entity,defaultLang)||displayName||mapName)+'</h3><p>'+esc(displayName||mapName)+(officialNames.length?' · '+esc(officialNames.join(", ")):"")+'</p></div></div><a class="ghost-link" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Wikidata ↗</a></div><div class="language-tabs">'+tabs+'</div><div class="language-panes">'+panes+'</div>'+sourceBadges()+'<div class="history-inspector" id="history-inspector"><div class="inspector-placeholder"><span>✦</span><strong>Select a people</strong><p>Historical locations will appear on the map.</p></div></div><div class="history-legend"><span><i class="legend-red"></i>Historical area / location</span><span><i class="legend-gray"></i>Data quality note</span></div>';
    panel.querySelectorAll("[data-lang-tab]").forEach(b=>b.addEventListener("click",()=>activateLanguage(panel,b.dataset.langTab)));
    activateLanguage(panel,defaultLang);
    panel.querySelectorAll(".people-row").forEach(b=>b.addEventListener("click",()=>selectPeopleHistory(b.dataset.peopleId,b.dataset.peopleName)));
@@ -428,27 +428,46 @@ const EXPLORER_TYPES={states:"Q6256",peoples:"Q41710",languages:"Q315",animals:"
 function explorerYearBounds(y){return {start:String(y)+"-01-01T00:00:00Z",end:String(y)+"-12-31T23:59:59Z"}}
 async function explorerSearch(mode,term){
  const clean=String(term||"").trim();
+ const inRange=row=>{
+   const sy=yearOf(row.inception?.value),ey=yearOf(row.extinction?.value);
+   return (!sy||sy<=explorerYear)&&(!ey||ey>=explorerYear);
+ };
  if(mode==="states" && geoLayer){
    const features=geoLayer.getLayers().map(layer=>layer.feature).filter(Boolean);
-   const filtered=clean?features.filter(f=>String(f.properties?.name||"").toLowerCase().includes(clean.toLowerCase())):features;
-   return filtered.slice(0,80).map(f=>({item:{value:"http://www.wikidata.org/entity/"+(f.properties?.iso||"")},itemLabel:{value:f.properties?.name||"Unknown"},coord:null,geo:null,inception:null,extinction:null,iso:{value:f.properties?.iso||f.properties?.ISO_A3||f.properties?.ISO_A2||""}}));
+   const filtered=clean
+     ?features.filter(f=>{
+        const p=f.properties||{};
+        const hay=[p.name,p.NAME,p.ADMIN,p.sovereignt,p.iso,p.ISO_A3,p.ISO_A2].filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(clean.toLowerCase());
+      })
+     :features;
+   return filtered.slice(0,120).map(f=>{
+     const p=f.properties||{};
+     const iso=p.iso||p.ISO_A3||p.ISO_A2||"";
+     return {item:{value:"http://www.wikidata.org/entity/"+iso},itemLabel:{value:p.name||p.NAME||p.ADMIN||iso},coord:null,geo:null,inception:null,extinction:null,iso:{value:iso}};
+   });
  }
  if(clean){
-   const ids=await searchQids(clean,"en");
-   const ents=await getEntities(ids,["en"]);
+   const langs=["en","hy","ru"];
+   const ids=[...new Set((await Promise.all(langs.map(l=>searchQids(clean,l)))).flat())];
+   const ents=await getEntities(ids,["en","hy","ru"]);
    const valid=ids.map(id=>ents[id]).filter(Boolean).filter(ent=>{
      const types=prop(ent.claims,"P31").map(claimId);
      if(mode==="languages")return types.includes("Q315")||types.includes("Q34770")||types.includes("Q20162172");
      if(mode==="animals")return types.includes("Q16521")||types.includes("Q729")||types.includes("Q55983715");
      return types.includes("Q41710")||types.includes("Q16334295")||types.includes("Q16881915");
    });
-   return valid.slice(0,40).map(ent=>({item:{value:"http://www.wikidata.org/entity/"+ent.id},itemLabel:{value:ent.labels?.en?.value||ent.id},coord:prop(ent.claims,"P625")[0]?.mainsnak?.datavalue?.value?.latitude!=null?{value:"Point("+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.longitude+" "+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.latitude+")"}:null,inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value,geo:null}));
+   return valid.filter(ent=>{
+     const row={inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value};
+     return inRange(row);
+   }).slice(0,60).map(ent=>{
+     const c=prop(ent.claims,"P625")[0]?.mainsnak?.datavalue?.value;
+     return {item:{value:"http://www.wikidata.org/entity/"+ent.id},itemLabel:{value:ent.labels?.en?.value||ent.labels?.hy?.value||ent.labels?.ru?.value||ent.id},coord:c?.latitude!=null?{value:"Point("+c.longitude+" "+c.latitude+")"}:null,geo:prop(ent.claims,"P3896")[0]?.mainsnak?.datavalue?.value||null,inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value};
+   });
  }
- let q="";
- if(mode==="languages")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q315. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 45';
- else if(mode==="animals")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q16521. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 45';
- else q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q41710. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 45';
- return sparql(q).then(rows=>rows.filter(r=>{const sy=yearOf(r.inception?.value),ey=yearOf(r.extinction?.value);return (!sy||sy<=explorerYear)&&(!ey||ey>=explorerYear)})).catch(()=>[]);
+ const root=mode==="languages"?"Q315":mode==="animals"?"Q16521":"Q41710";
+ const q='SELECT ?item ?itemLabel ?coord ?inception ?extinction ?geo WHERE {?item wdt:P31/wdt:P279* wd:'+root+'. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} OPTIONAL{?item wdt:P3896 ?geo.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en,hy,ru".}} LIMIT 100';
+ return sparql(q).then(rows=>rows.filter(inRange)).catch(()=>[]);
 }
 function clearExplorerLayers(){if(window.__explorerGroup){window.__explorerGroup.clearLayers();window.__explorerGroup.remove();window.__explorerGroup=null}}
 function explorerCard(row){
@@ -539,17 +558,24 @@ async function selectExplorerEntity(qid,name){
  const period=(start!=null||finish!=null)?(start!=null&&finish!=null?formatYear(start)+" — "+formatYear(finish):start!=null?formatYear(start)+" — Present":"Until "+formatYear(finish)):"Period not recorded";
  ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(entity?.descriptions?.en?.value||"No English description available.")+'</p><div class="history-facts"><div class="history-fact"><span>Mode</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Selected date</span><strong>'+esc(formatYear(explorerYear))+'</strong></div><div class="history-fact"><span>Entity period</span><strong>'+esc(period)+'</strong></div><div class="history-fact"><span>Mapped locations</span><strong>'+esc(String(locations.length))+'</strong></div></div><div class="history-sources"><a href="https://www.wikidata.org/wiki/'+encodeURIComponent(resolvedQid||qid)+'" target="_blank" rel="noopener">Open Wikidata source ↗</a></div>';
 }
-async function parseHistoricalDateInput(value){
+function parseHistoricalDateInput(value){
  const raw=String(value??"").trim();
  if(!raw)return 2026;
- const direct=Number(raw.replace(/,/g,""));
- if(Number.isFinite(direct))return Math.round(direct);
- const m=raw.match(/^(?:the\s*)?(\d{1,4})(?:st|nd|rd|th)?\s*century(?:\s*(BCE|BC|CE|AD))?$/i);
+ const normalized=raw.replace(/,/g,"").replace(/\s+/g," ").trim();
+ const direct=Number(normalized);
+ if(Number.isFinite(direct))return Math.max(-5000,Math.min(2026,Math.round(direct)));
+ const m=normalized.match(/^(?:the\s*)?(\d{1,4})(?:st|nd|rd|th)?\s*century(?:\s*(BCE|BC|CE|AD))?$/i);
  if(m){
    const c=Math.max(1,Number(m[1]));
    const era=(m[2]||"CE").toUpperCase();
    const year=(c-1)*100+50;
-   return (era==="BCE"||era==="BC")?-year:year;
+   return Math.max(-5000,Math.min(2026,(era==="BCE"||era==="BC")?-year:year));
+ }
+ const eraMatch=normalized.match(/^(-?\d{1,6})\s*(BCE|BC|CE|AD)$/i);
+ if(eraMatch){
+   const n=Math.abs(Number(eraMatch[1]));
+   const era=eraMatch[2].toUpperCase();
+   return Math.max(-5000,Math.min(2026,(era==="BCE"||era==="BC")?-n:n));
  }
  return null;
 }
@@ -566,8 +592,8 @@ async function initExplorer(){
 
  document.querySelectorAll(".explorer-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".explorer-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");explorerMode=b.dataset.mode;renderExplorer()}));
  const slider=document.querySelector("#history-slider"),year=document.querySelector("#history-year"),cur=document.querySelector("#history-current");
- let explorerTimer=null; slider?.addEventListener("input",()=>{explorerYear=Number(slider.value);year.value=slider.value;cur.textContent=slider.value;clearTimeout(explorerTimer);explorerTimer=setTimeout(renderExplorer,220)});
- year?.addEventListener("change",()=>{const parsed=parseHistoricalDateInput(year.value);if(parsed==null){year.value=String(explorerYear);return}explorerYear=parsed;year.value=String(parsed);slider.min="-5000";slider.max="2026";slider.value=String(Math.max(-5000,Math.min(2026,parsed)));cur.textContent=formatExplorerDateInput(parsed);renderExplorer()});
+ let explorerTimer=null; slider?.addEventListener("input",()=>{explorerYear=Number(slider.value);year.value=formatExplorerDateInput(explorerYear);cur.textContent=formatExplorerDateInput(explorerYear);clearTimeout(explorerTimer);explorerTimer=setTimeout(renderExplorer,220)});
+ year?.addEventListener("change",()=>{const parsed=parseHistoricalDateInput(year.value);if(parsed==null){year.value=formatExplorerDateInput(explorerYear);return}explorerYear=parsed;slider.min="-5000";slider.max="2026";slider.value=String(parsed);year.value=formatExplorerDateInput(parsed);cur.textContent=formatExplorerDateInput(parsed);renderExplorer()});
  document.querySelector("#history-apply")?.addEventListener("click",renderExplorer);
  document.querySelector("#history-now")?.addEventListener("click",()=>{year.value="2026";slider.value=2026;cur.textContent="2026";explorerYear=2026;renderExplorer()});
  renderExplorer();
