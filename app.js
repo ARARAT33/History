@@ -1,5 +1,5 @@
 
-const aliases={"United States of America":"ԱՄՆ","United States":"ԱՄՆ","Russia":"Ռուսաստան","Türkiye":"Թուրքիա","Turkey":"Թուրքիա","Armenia":"Հայաստան","Azerbaijan":"Ադրբեջան","Georgia":"Վրաստան","Iran":"Իրան","Iraq":"Իրաք","China":"Չինաստան","India":"Հնդկաստան","Japan":"Ճապոնիա","Germany":"Գերմանիա","France":"Ֆրանսիա","Italy":"Իտալիա","Spain":"Իսպանիա","United Kingdom":"Միացյալ Թագավորություն","Canada":"Կանադա","Mexico":"Մեքսիկա","Brazil":"Բրազիլիա","Australia":"Ավստրալիա"};
+const aliases={"United States of America":"United States","United States":"United States","Russia":"Russia","Türkiye":"Türkiye","Turkey":"Türkiye","Armenia":"Armenia","Azerbaijan":"Azerbaijan","Georgia":"Georgia","Iran":"Iran","Iraq":"Iraq","China":"China","India":"India","Japan":"Japan","Germany":"Germany","France":"France","Italy":"Italy","Spain":"Spain","United Kingdom":"United Kingdom","Canada":"Canada","Mexico":"Mexico","Brazil":"Brazil","Australia":"Australia"};
 const WIKIDATA_API="https://www.wikidata.org/w/api.php";
 const WDQS="https://query.wikidata.org/sparql";
 const COMMONS_API="https://commons.wikimedia.org/w/api.php";
@@ -19,13 +19,13 @@ function centuryLabel(y){
  const c=Math.max(1,Math.ceil(n/100));
  const roman=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV"];
  const r=roman[c]||String(c);
- return (y<0?"մ.թ.ա. ":"")+r+" դար";
+ return (y<0?r+" century BCE":r+" century CE");
 }
 function historicalPeriod(start,end,point,periodLabel){
  const py=periodLabel?String(periodLabel):"";
  const norm=py.toLowerCase();
  const named=norm.includes("middle ages")||norm.includes("միջնադար")||norm.includes("средневек");
- if(named)return esc(py)+" <span class=\"period-derived\">(մոտավորապես V–XV դարեր)</span>";
+ if(named)return esc(py)+" <span class=\"period-derived\">(approximately V–XV դարեր)</span>";
  const sy=yearOf(start),ey=yearOf(end),pyear=yearOf(point);
  if(sy!=null&&ey!=null){
    const exact=(precisionOf(start)>=9&&precisionOf(end)>=9);
@@ -35,8 +35,8 @@ function historicalPeriod(start,end,point,periodLabel){
    return precisionOf(point)>=9?esc(formatYear(pyear)):esc(centuryLabel(pyear))+" <span class=\"period-derived\">("+esc(formatYear(pyear))+")</span>";
  }
  if(sy!=null)return esc(centuryLabel(sy))+" <span class=\"period-derived\">("+esc(formatYear(sy))+"+)</span>";
- if(ey!=null)return esc("մինչև "+formatYear(ey));
- return "Ժամանակաշրջանը նշված չէ";
+ if(ey!=null)return esc("until "+formatYear(ey));
+ return "Period not recorded";
 }
 async function fetchJson(url,options={}){
  const res=await fetch(url,options);
@@ -54,9 +54,10 @@ async function sparql(query){
 }
 async function findQidByIso(iso){
  const code=String(iso||"").trim().toUpperCase();
- if(!new RegExp("^[A-Z]{2}$").test(code))return null;
+ if(!/^[A-Z]{2,3}$/.test(code))return null;
  try{
-   const rows=await sparql('SELECT ?item WHERE {?item wdt:P297 "'+code+'".} LIMIT 5');
+   const propName=code.length===3?"P298":"P297";
+   const rows=await sparql('SELECT ?item WHERE {?item wdt:'+propName+' "'+code+'".} LIMIT 5');
    return rows[0]?.item?.value?.split("/").pop()||null;
  }catch(_){return null}
 }
@@ -218,11 +219,11 @@ async function communityData(qid){
  return {ethnic,religions};
 }
 function sourceBadges(){
- return '<div class="source-strip"><span>Wikidata</span><span>Wikipedia/Wikimedia</span><span class="source-note-inline">Տվյալների բացակայության դեպքում փաստը չի հորինվում։</span></div>';
+ return '<div class="source-strip"><span>Wikidata</span><span>Wikipedia/Wikimedia</span><span class="source-note-inline">Missing data is not invented.</span></div>';
 }
 async function renderCountry(mapName,displayName,iso){
  const panel=document.querySelector("#country-panel"); if(!panel)return;
- panel.innerHTML='<div class="loading-state"><div class="loading-orbit"></div><small>HISTORY · DATA ENGINE</small><h3>'+esc(displayName||mapName)+'</h3><p>Մի քանի աղբյուրից փնտրվում և համադրվում են տվյալները…</p></div>';
+ panel.innerHTML='<div class="loading-state"><div class="loading-orbit"></div><small>HISTORY · DATA ENGINE</small><h3>'+esc(displayName||mapName)+'</h3><p>Loading structured data from open sources…</p></div>';
  try{
    const entity=await findCountryEntity(mapName,iso);
    if(!entity){
@@ -240,7 +241,7 @@ async function renderCountry(mapName,displayName,iso){
    const tabs=languages.map(lang=>'<button type="button" class="lang-tab '+(lang===defaultLang?"active":"")+'" data-lang-tab="'+esc(lang)+'">'+esc(UI_LANG_NAMES[lang]||lang.toUpperCase())+'</button>').join("");
    const panes=languages.map(lang=>languageTabHtml(entity,cd,lang,ethnicRows(comm.ethnic,lang,peopleLinked),religionRows(comm.religions,lang,peopleLinked))).join("");
    const officialNames=cd.officialIds.map(id=>valueLabel(cd.linked,id,"hy")||valueLabel(cd.linked,id,"en")).filter(Boolean);
-   panel.innerHTML='<div class="country-hero"><div class="country-hero-title"><span class="flag-badge">'+esc(isoFlag(iso))+'</span><div><div class="eyebrow">COUNTRY · '+esc(qid)+'</div><h3>'+esc(entityLabel(entity,defaultLang)||displayName||mapName)+'</h3><p>'+esc(displayName||mapName)+(officialNames.length?' · '+esc(officialNames.join(", ")):"")+'</p></div></div><a class="ghost-link" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Wikidata ↗</a></div><div class="language-tabs">'+tabs+'</div><div class="language-panes">'+panes+'</div>'+sourceBadges()+'<div class="history-inspector" id="history-inspector"><div class="inspector-placeholder"><span>✦</span><strong>Ընտրիր ժողովրդի անունը</strong><p>Քարտեզում կերևան նրա հայտնի պատմական բնակության վայրերը։</p></div></div><div class="history-legend"><span><i class="legend-red"></i>Պատմական տարածք / տեղադրություն</span><span><i class="legend-gray"></i>Տվյալների որակի նշում</span></div>';
+   panel.innerHTML='<div class="country-hero"><div class="country-hero-title"><span class="flag-badge">'+esc(isoFlag(iso))+'</span><div><div class="eyebrow">COUNTRY · '+esc(qid)+'</div><h3>'+esc(entityLabel(entity,defaultLang)||displayName||mapName)+'</h3><p>'+esc(displayName||mapName)+(officialNames.length?' · '+esc(officialNames.join(", ")):"")+'</p></div></div><a class="ghost-link" href="https://www.wikidata.org/wiki/'+encodeURIComponent(qid)+'" target="_blank" rel="noopener">Wikidata ↗</a></div><div class="language-tabs">'+tabs+'</div><div class="language-panes">'+panes+'</div>'+sourceBadges()+'<div class="history-inspector" id="history-inspector"><div class="inspector-placeholder"><span>✦</span><strong>Select a people</strong><p>Historical locations will appear on the map.</p></div></div><div class="history-legend"><span><i class="legend-red"></i>Պատմական տարածք / տեղադրություն</span><span><i class="legend-gray"></i>Տվյալների որակի նշում</span></div>';
    panel.querySelectorAll("[data-lang-tab]").forEach(b=>b.addEventListener("click",()=>activateLanguage(panel,b.dataset.langTab)));
    activateLanguage(panel,defaultLang);
    panel.querySelectorAll(".people-row").forEach(b=>b.addEventListener("click",()=>selectPeopleHistory(b.dataset.peopleId,b.dataset.peopleName)));
@@ -274,7 +275,7 @@ function clearHistorical(){
  if(historicalGroup){historicalGroup.clearLayers();historicalGroup.remove();}
  historicalGroup=null;historicalPlaces=[];selectedPeopleId=null;
  const inspector=document.querySelector("#history-inspector");
- if(inspector)inspector.innerHTML='<div class="inspector-placeholder"><span>✦</span><strong>Ընտրիր ժողովրդի անունը</strong><p>Քարտեզում կերևան նրա հայտնի պատմական բնակության վայրերը։</p></div>';
+ if(inspector)inspector.innerHTML='<div class="inspector-placeholder"><span>✦</span><strong>Select a people</strong><p>Historical locations will appear on the map.</p></div>';
 }
 function focusCountry(layer){
  if(!leafletMap||!layer)return;
@@ -388,7 +389,7 @@ function showHistoryPlace(place,index){
    if(c)leafletMap.flyTo(c,Math.max(5,leafletMap.getZoom()),{duration:.7});
  }
 }
-window.historyMapClearSelection=()=>{const p=document.querySelector("#history-inspector");if(p)p.innerHTML='<div class="inspector-placeholder"><span>✦</span><strong>Ընտրիր քարտեզի նշված վայրերից մեկը</strong><p>Այստեղ կերևան վայրի անվանումը, դարերը, աղբյուրները և տվյալների որակի նշումը։</p></div>'};
+window.historyMapClearSelection=()=>{const p=document.querySelector("#history-inspector");if(p)p.innerHTML='<div class="inspector-placeholder"><span>✦</span><strong>Ընտրիր քարտեզի նշված վայրերից մեկը</strong><p>Այստեղ կերևան վայրի անվանումը, դարերը, sources և տվյալների որակի նշումը։</p></div>'};
 async function selectPeopleHistory(qid,name){
  if(!leafletMap)return;
  clearHistorical();selectedPeopleId=qid;
@@ -410,14 +411,14 @@ async function selectPeopleHistory(qid,name){
      L.circleMarker(c,{radius:6,color:"#8d1610",fillColor:"#d9251b",fillOpacity:.86,weight:2}).on("click",()=>showHistoryPlace(p)).addTo(historicalGroup);
    });
    const count=historicalPlaces.filter(p=>p.coord||p.geo).length;
-   if(inspector)inspector.innerHTML='<div class="people-summary"><div><span class="eyebrow">PEOPLE MAP</span><h4>'+esc(name)+'</h4><p>'+count+' քարտեզագրված վայր/տարածք · '+painted+' geoshape փորձարկված</p></div><button type="button" class="history-clear" onclick="window.historyMapClearSelection()">Մաքրել</button></div><div class="people-stat-grid"><div><strong>'+historicalPlaces.length+'</strong><small>գտնված գրառում</small></div><div><strong>'+painted+'</strong><small>տարածքային ձև</small></div><div><strong>'+historicalPlaces.filter(p=>p.coord).length+'</strong><small>կոորդինատային վայր</small></div></div><div class="inspector-note">Կարմիրով նշված տարածքները/կետերը կառուցված են հասանելի Wikidata + Wikimedia Commons geospatial տվյալներից։ «Վստահություն»-ը տվյալների ամբողջականության ցուցիչ է, ոչ թե պատմական ճշմարտության ինքնուրույն գնահատական։</div>';
+   if(inspector)inspector.innerHTML='<div class="people-summary"><div><span class="eyebrow">PEOPLE MAP</span><h4>'+esc(name)+'</h4><p>'+count+' քարտեզագրված վայր/տարածք · '+painted+' geoshape փորձարկված</p></div><button type="button" class="history-clear" onclick="window.historyMapClearSelection()">Մաքրել</button></div><div class="people-stat-grid"><div><strong>'+historicalPlaces.length+'</strong><small>records found</small></div><div><strong>'+painted+'</strong><small>geographic shapes</small></div><div><strong>'+historicalPlaces.filter(p=>p.coord).length+'</strong><small>coordinate locations</small></div></div><div class="inspector-note">Կարմիրով նշված տարածքները/կետերը կառուցված են հասանելի Wikidata + Wikimedia Commons geospatial տվյալներից։ «Confidence»-ը տվյալների ամբողջականության ցուցիչ է, ոչ թե պատմական ճշմարտության ինքնուրույն գնահատական։</div>';
    if(count){
      const pts=historicalPlaces.map(p=>parseCoord(p.coord)).filter(Boolean);
      if(pts.length){const b=L.latLngBounds(pts);if(b.isValid())leafletMap.fitBounds(b.pad(.25),{maxZoom:6,duration:.7})}
    }
  }catch(err){
    console.error(err);
-   if(inspector)inspector.innerHTML='<div class="empty-data"><strong>Պատմական տարածքների տվյալները ժամանակավորապես չբեռնվեցին։</strong><p>Քարտեզի հիմնական աշխատանքը շարունակվում է։</p></div>';
+   if(inspector)inspector.innerHTML='<div class="empty-data"><strong>Historical location data is temporarily unavailable.</strong><p>The main map is still available.</p></div>';
  }
 }
 let explorerMode="states", explorerYear=2026;
@@ -541,7 +542,7 @@ function initWorldMap(){
    document.querySelector("#map-zoom-in")?.addEventListener("click",()=>leafletMap.zoomIn());
    document.querySelector("#map-zoom-out")?.addEventListener("click",()=>leafletMap.zoomOut());
    document.querySelector("#map-reset")?.addEventListener("click",resetMap);
- }).catch(err=>{mapEl.innerHTML='<div class="map-error">Քարտեզի տվյալները չբեռնվեցին։</div>';console.error(err)});
+ }).catch(err=>{mapEl.innerHTML='<div class="map-error">Map data could not be loaded.</div>';console.error(err)});
 }
 document.body.classList.add("map-only-page");
 initWorldMap();
