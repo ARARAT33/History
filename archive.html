@@ -10,8 +10,9 @@
 </main>
 <script>
 (()=>{const URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json",PAGE=50,esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));const first=(o,k)=>{for(const x of k)if(o?.[x]!=null&&String(o[x]).trim())return o[x];return""};const arr=x=>Array.isArray(x)?x:["items","records","history","archive","data","results"].flatMap(k=>Array.isArray(x?.[k])?x[k]:[]);let all=[],filtered=[],page=1;const root=document.getElementById("archive-content"),s=document.getElementById("archive-search"),count=document.getElementById("archive-count"),pages=document.getElementById("archive-pages");
-function normalizeUrl(v){let s=String(v??"").trim();const m=s.match(/^\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)$/);return m?m[2]:s}
-function linkLabel(v){let s=String(v??"").trim();const m=s.match(/^\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+)\\)$/);return m?m[1]:s}
+function parseMdLink(v){let s=String(v??"").trim();if(s.startsWith("[")&&s.endsWith(")")){const mid=s.indexOf("](");if(mid>0){const label=s.slice(1,mid),url=s.slice(mid+2,-1);if(/^https?:\\/\\//i.test(url))return{label,url}}}return null}
+function normalizeUrl(v){const m=parseMdLink(v);return m?m.url:String(v??"").trim()}
+function linkLabel(v){const m=parseMdLink(v);return m?m.label:String(v??"").trim()}
 function card(o,i){const id=first(o,["id","ID","uuid","identifier"])||"record-"+(i+1),n=first(o,["name","title","label","filename","slug"])||"Untitled",d=first(o,["description","desc","summary"])||"",t=first(o,["text","content","body","article","textContent"])||"",rawLink=first(o,["link","url","href","source"])||"",u=normalizeUrl(rawLink);
 const remaining=Object.entries(o).filter(([k,v])=>v!=null&&v!==""&&![ "id","ID","uuid","identifier","name","title","label","filename","slug","description","desc","summary","text","content","body","article","textContent","link","url","href","source"].includes(k)).map(([k,v])=>"<div><b>"+esc(k)+":</b> "+esc(typeof v==="object"?JSON.stringify(v):v)+"</div>").join("");
 const linkField=rawLink?'<p><b>Link:</b> <a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(linkLabel(rawLink))+'</a></p>':"";
