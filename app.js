@@ -482,7 +482,7 @@ async function selectExplorerEntity(qid,name){
    const familyIds=prop(cl,"P279").map(claimId).filter(Boolean),fe=await getEntities(familyIds,["en"]);
    const families=familyIds.map(id=>fe[id]?.labels?.en?.value).filter(Boolean);
    const speakers=prop(cl,"P1098").map(claimNumber).filter(x=>x!=null);
-   extra='<div class="history-facts"><div class="history-fact"><span>Language family / parent</span><strong>'+esc(families.join(", ")||"Not recorded")+'</strong></div><div class="history-fact"><span>Recorded speakers</span><strong>'+esc(speakers.length?fmt(speakers[speakers.length-1]):"Not recorded")+'</strong></div><div class="history-fact"><span>Countries / territories</span><strong>'+countryCount+'</strong></div></div>';
+   extra='<div class="history-facts"><div class="history-fact"><span>Language family / parent</span><strong>'+esc(families.join(", ")||"Not recorded")+'</strong></div><div class="history-fact"><span>Recorded speakers</span><strong>'+esc(speakers.length?formatNumber(speakers[speakers.length-1]):"Not recorded")+'</strong></div><div class="history-fact"><span>Countries / territories</span><strong>'+countryCount+'</strong></div></div>';
  }else if(explorerMode==="peoples"){
    extra='<div class="history-facts"><div class="history-fact"><span>Countries linked in structured data</span><strong>'+countryCount+'</strong></div><div class="history-fact"><span>Historical location records</span><strong>'+locRows.length+'</strong></div></div>';
  }else if(explorerMode==="animals"){
@@ -521,4 +521,5 @@ function initWorldMap(){
  }).catch(err=>{mapEl.innerHTML='<div class="map-error">Քարտեզի տվյալները չբեռնվեցին։</div>';console.error(err)});
 }
 document.body.classList.add("map-only-page");
-initWorldMap();\nsetTimeout(initExplorer,250);
+initWorldMap();
+setTimeout(initExplorer,250);
