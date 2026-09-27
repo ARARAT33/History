@@ -454,8 +454,15 @@ async function renderExplorer(){
  const term=document.querySelector("#history-entity")?.value.trim()||"";
  const y=Number(document.querySelector("#history-year")?.value||2026);explorerYear=y;
  list.innerHTML='<div class="inspector-placeholder">Loading historical data…</div>';clearExplorerLayers();
- const rows=await explorerSearch(explorerMode,term);
- list.innerHTML=rows.length?rows.map(explorerCard).join(""):'<div class="inspector-placeholder">No structured records returned for this query.</div>';
+ let rows=await explorerSearch(explorerMode,term);
+ if(!rows.length&&!term){
+   const fallbackTerms={peoples:["Armenians","Romans","Greeks","Persians","Kurds","Arabs","Celts"],languages:["English","Armenian","Russian","French","German","Spanish","Arabic"],animals:["lion","tiger","elephant","dog","cat","horse","wolf"],states:["Armenia","France","Germany","United Kingdom","United States","China","India","Japan"]};
+   const names=fallbackTerms[explorerMode]||[];
+   const ids=(await Promise.all(names.map(n=>searchQids(n,"en")))).flat().slice(0,20);
+   const ents=await getEntities(ids,["en"]);
+   rows=ids.map(id=>ents[id]).filter(Boolean).map(ent=>({item:{value:"http://www.wikidata.org/entity/"+ent.id},itemLabel:{value:ent.labels?.en?.value||ent.id},coord:null,geo:null,inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value}));
+ }
+ list.innerHTML=rows.length?rows.map(explorerCard).join(""):'<div class="inspector-placeholder">No records were returned. Try a more specific search.</div>';
  list.querySelectorAll(".explore-select").forEach(b=>b.addEventListener("click",()=>selectExplorerEntity(b.dataset.qid,b.dataset.name)));
  if(explorerMode==="states"){
    window.__explorerGroup=L.layerGroup().addTo(leafletMap);
