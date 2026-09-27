@@ -1,11 +1,42 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Archive — HISTORY</title><link rel="stylesheet" href="pages.css">
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archive — HISTORY</title>
+<link rel="stylesheet" href="pages.css">
 <style>
-.archive-wrap{max-width:1280px;margin:auto;padding:22px}.archive-hero{margin-bottom:18px}.archive-tools{display:flex;gap:10px;align-items:center;margin-bottom:20px;padding:12px;border:1px solid rgba(127,127,127,.2);border-radius:16px;background:rgba(255,255,255,.08);position:sticky;top:72px;z-index:20;backdrop-filter:blur(12px)}.archive-search{flex:1;padding:13px 16px;border:1px solid rgba(127,127,127,.25);border-radius:13px;background:rgba(255,255,255,.05);color:inherit;font:inherit}.archive-count{opacity:.7}.archive-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.archive-card{min-width:0;padding:19px;border:1px solid rgba(127,127,127,.2);border-radius:18px;background:rgba(255,255,255,.035);box-shadow:0 9px 28px rgba(0,0,0,.07)}.archive-id{font:600 .72rem ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.55;overflow-wrap:anywhere}.archive-card h3{margin:8px 0;font-size:1.12rem;overflow-wrap:anywhere}.archive-card p{margin:0;line-height:1.6;opacity:.82}.archive-link{margin-top:10px;overflow-wrap:anywhere}.archive-text{margin-top:12px;padding-top:12px;border-top:1px solid rgba(127,127,127,.16);white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}.archive-empty{grid-column:1/-1;padding:30px;text-align:center;opacity:.7}.archive-pages{display:flex;justify-content:center;align-items:center;gap:10px;margin:22px}.archive-pages button{padding:9px 14px;border:1px solid rgba(127,127,127,.25);border-radius:10px;background:transparent;color:inherit;cursor:pointer}.archive-pages button:disabled{opacity:.35}@media(max-width:900px){.archive-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.archive-grid{grid-template-columns:1fr}}
-</style></head><body class="page-body"><main class="page-main archive-wrap">
-<section class="hero-card archive-hero"><span class="page-kicker">HISTORY ARCHIVE</span><h1>Archive</h1><p>Browse names, descriptions and links from the GitHub archive database.</p></section>
-<div class="archive-tools"><input id="archive-search" class="archive-search" type="search" placeholder="Search this Archive page…" aria-label="Search Archive"><span id="archive-count" class="archive-count"></span></div>
-<section id="archive-content" class="archive-grid"><div class="archive-empty">Loading archive…</div></section><div id="archive-pages" class="archive-pages"></div>
+.archive-page{max-width:1280px;margin:auto;padding:24px}
+.archive-searchbar{position:sticky;top:12px;z-index:20;display:flex;gap:10px;margin:0 0 22px;padding:12px;border:1px solid rgba(127,127,127,.22);border-radius:14px;background:rgba(20,20,20,.88);backdrop-filter:blur(12px)}
+.archive-searchbar input{flex:1;min-width:0;padding:13px 15px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font:inherit;outline:none}
+.archive-searchbar span{align-self:center;white-space:nowrap;opacity:.7;font-size:.9rem}
+.archive-list{display:grid;gap:18px}
+.archive-item{padding:18px;border:1px solid rgba(127,127,127,.2);border-radius:16px;background:rgba(255,255,255,.035)}
+.archive-item h2{margin:0 0 8px;font-size:1.15rem;overflow-wrap:anywhere}
+.archive-item p{margin:0 0 10px;line-height:1.55;opacity:.82}
+.archive-url{display:block;overflow-wrap:anywhere}
+.archive-url a{word-break:break-all}
+.archive-empty{text-align:center;padding:35px;opacity:.7}
+.archive-pages{display:flex;justify-content:center;gap:10px;align-items:center;margin:22px 0}
+.archive-pages button{padding:9px 14px;border:1px solid rgba(127,127,127,.25);border-radius:9px;background:transparent;color:inherit;cursor:pointer}
+.archive-pages button:disabled{opacity:.35;cursor:not-allowed}
+</style>
+</head>
+<body class="page-body">
+<main class="page-main archive-page">
+<section class="hero-card" style="margin-bottom:18px">
+<span class="page-kicker">HISTORY ARCHIVE</span>
+<h1>Archive</h1>
+<p>Archive records loaded directly from AWEArchiveDB history.json.</p>
+</section>
+<div class="archive-searchbar">
+<input id="archive-search" type="search" placeholder="Search this page…" aria-label="Search Archive">
+<span id="archive-count"></span>
+</div>
+<section id="archive-list" class="archive-list"><div class="archive-empty">Loading…</div></section>
+<div id="archive-pages" class="archive-pages"></div>
 </main>
-<script src="archive.js?v=20260927-8"></script><script src="site-tools.js?v=20260927-8"></script></body></html>
+<script src="archive.js?v=20260927-9"></script>
+<script src="site-tools.js?v=20260927-8"></script>
+</body>
+</html>
