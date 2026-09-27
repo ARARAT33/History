@@ -425,7 +425,7 @@ const EXPLORER_TYPES={states:"Q6256",peoples:"Q41710",languages:"Q315",animals:"
 function explorerYearBounds(y){return {start:String(y)+"-01-01T00:00:00Z",end:String(y)+"-12-31T23:59:59Z"}}
 async function explorerSearch(mode,term){
  const type=EXPLORER_TYPES[mode]; if(!type)return [];
- const q='SELECT ?item ?itemLabel ?coord ?image ?inception WHERE { ?item wdt:P31/wdt:P279* wd:'+type+'. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P18 ?image.} OPTIONAL{?item wdt:P571 ?inception.} '+(term?'FILTER(CONTAINS(LCASE(STR(?itemLabel)),LCASE("'+String(term).replaceAll('"','\\\"')+'")))':'')+' SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 80';
+ const q='SELECT ?item ?itemLabel ?coord ?geo ?image ?inception ?extinction WHERE { ?item wdt:P31/wdt:P279* wd:'+type+'. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P3896 ?geo.} OPTIONAL{?item wdt:P18 ?image.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} '+(term?'FILTER(CONTAINS(LCASE(STR(?itemLabel)),LCASE("'+String(term).replaceAll('"','\\\"')+'")))':'')+' SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 80';
  return sparql(q).catch(()=>[]);
 }
 function clearExplorerLayers(){if(window.__explorerGroup){window.__explorerGroup.clearLayers();window.__explorerGroup.remove();window.__explorerGroup=null}}
@@ -442,9 +442,11 @@ async function renderExplorer(){
  list.innerHTML=rows.length?rows.map(explorerCard).join(""):'<div class="inspector-placeholder">No structured records returned for this query.</div>';
  list.querySelectorAll(".explore-select").forEach(b=>b.addEventListener("click",()=>selectExplorerEntity(b.dataset.qid,b.dataset.name)));
  if(explorerMode==="states"){
-   const countries=rows.filter(r=>r.coord?.value);
    window.__explorerGroup=L.layerGroup().addTo(leafletMap);
-   countries.forEach(r=>{const c=parseCoord(r.coord.value);if(c)L.circleMarker(c,{radius:5,color:"#e9a28e",fillColor:"#d76545",fillOpacity:.8}).bindTooltip(r.itemLabel?.value||"").addTo(window.__explorerGroup)});
+   const shaped=rows.filter(r=>r.geo?.value).slice(0,30);
+   const rendered=await Promise.all(shaped.map(async r=>({r,g:await commonsMapGeoJSON(r.geo.value)})));
+   rendered.forEach(({r,g})=>{if(g)L.geoJSON(g,{style:{color:"#ffd9ce",weight:1.5,fillColor:"#d76545",fillOpacity:.35},onEachFeature:(ft,ly)=>ly.bindTooltip(r.itemLabel?.value||"").on("click",()=>selectExplorerEntity(r.item?.value?.split("/").pop(),r.itemLabel?.value||""))}).addTo(window.__explorerGroup)});
+   rows.filter(r=>r.coord?.value&&!r.geo?.value).slice(0,80).forEach(r=>{const c=parseCoord(r.coord.value);if(c)L.circleMarker(c,{radius:5,color:"#e9a28e",fillColor:"#d76545",fillOpacity:.8}).bindTooltip(r.itemLabel?.value||"").addTo(window.__explorerGroup)});
  }
  if(ins)ins.innerHTML='<div class="inspector-placeholder"><strong>'+rows.length+'</strong> structured records found for <strong>'+esc(explorerMode)+'</strong> at <strong>'+esc(String(y))+'</strong>. Select an entity for details.</div>';
 }
