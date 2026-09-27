@@ -1,1 +1,79 @@
-
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archive — WORLD HISTORY ARCHIVE</title>
+<link rel="stylesheet" href="pages.css">
+<style>
+body{margin:0}.archive-page{max-width:1280px;margin:0 auto;padding:24px;box-sizing:border-box}
+.archive-head{margin-bottom:18px}.archive-head h1{margin:6px 0}.archive-head p{opacity:.75}
+.archive-search{position:sticky;top:10px;z-index:50;display:flex;gap:10px;align-items:center;padding:10px;margin-bottom:20px;border:1px solid rgba(127,127,127,.2);border-radius:14px;background:rgba(20,20,20,.94);backdrop-filter:blur(12px)}
+.archive-search input{box-sizing:border-box;flex:1;min-width:0;padding:13px 15px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:#171717;color:#fff;font:inherit;outline:0}
+.archive-search input:focus{border-color:rgba(255,255,255,.5)}.archive-count{white-space:nowrap;opacity:.65;font-size:13px}
+.archive-list{display:grid;gap:18px}.archive-card{padding:18px;border:1px solid rgba(127,127,127,.2);border-radius:16px;background:rgba(255,255,255,.035);overflow:hidden}
+.archive-card h2{margin:0 0 8px;overflow-wrap:anywhere}.archive-card p{margin:0 0 12px;line-height:1.6;opacity:.82;white-space:pre-wrap}
+.archive-url{line-height:1.45;overflow-wrap:anywhere}.archive-url a{color:inherit;word-break:break-all}
+.archive-empty{padding:35px;text-align:center;opacity:.7;border:1px dashed rgba(127,127,127,.2);border-radius:14px}
+.archive-pages{display:flex;justify-content:center;align-items:center;gap:12px;margin:24px 0}.archive-pages button{padding:9px 14px;border:1px solid rgba(127,127,127,.25);border-radius:9px;background:transparent;color:inherit;cursor:pointer}.archive-pages button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:600px){.archive-page{padding:14px}.archive-search{top:5px}.archive-count{font-size:12px}}
+</style>
+</head>
+<body class="page-body">
+<main class="page-main archive-page">
+<header class="hero-card archive-head">
+<span class="page-kicker">HISTORY ARCHIVE</span>
+<h1>Archive</h1>
+<p>Data is loaded directly from AWEArchiveDB/history.json.</p>
+</header>
+<div class="archive-search">
+<input id="archive-search-input" type="search" autocomplete="off" placeholder="Search archive by name, description or URL…" aria-label="Search archive">
+<span id="archive-count" class="archive-count">Loading…</span>
+</div>
+<section id="archive-list" class="archive-list"><div class="archive-empty">Loading data…</div></section>
+<nav id="archive-pages" class="archive-pages" aria-label="Archive pages"></nav>
+</main>
+<script>
+(() => {
+"use strict";
+const DATA_URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/history.json";
+const PAGE_SIZE=50;
+const input=document.getElementById("archive-search-input");
+const list=document.getElementById("archive-list");
+const count=document.getElementById("archive-count");
+const pages=document.getElementById("archive-pages");
+let all=[],shown=[],page=1;
+function esc(v){return String(v==null?"":v).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function field(o,k){return o&&o[k]!=null?String(o[k]).trim():"";}
+function records(data){
+ if(Array.isArray(data))return data;
+ if(data&&Array.isArray(data.items))return data.items;
+ if(data&&Array.isArray(data.results))return data.results;
+ if(data&&Array.isArray(data.data))return data.data;
+ return [];
+}
+function render(){
+ const total=Math.max(1,Math.ceil(shown.length/PAGE_SIZE));if(page>total)page=total;
+ const start=(page-1)*PAGE_SIZE,rows=shown.slice(start,start+PAGE_SIZE);
+ if(!rows.length)list.innerHTML='<div class="archive-empty">No matching results.</div>';
+ else list.innerHTML=rows.map((o,i)=>{
+  const id=field(o,"id")||String(start+i+1),name=field(o,"name")||"Untitled",description=field(o,"description"),url=field(o,"link");
+  return '<article class="archive-card"><div style="opacity:.5;font-size:12px;margin-bottom:7px">ID · '+esc(id)+'</div><h2>'+esc(name)+'</h2><p>'+esc(description||"No description provided.")+'</p><div class="archive-url"><strong>Link:</strong> '+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a>':"No link provided.")+'</div></article>';
+ }).join("");
+ count.textContent=shown.length+" results";
+ pages.innerHTML='<button type="button" id="ap" '+(page<=1?"disabled":"")+'>← Previous</button><span>Page '+page+" / "+total+'</span><button type="button" id="an" '+(page>=total?"disabled":"")+'>Next →</button>';
+ const prev=document.getElementById("ap"),next=document.getElementById("an");
+ if(prev)prev.onclick=()=>{page--;render();scrollTo(0,0)};
+ if(next)next.onclick=()=>{page++;render();scrollTo(0,0)};
+}
+function searchNow(){
+ const q=input.value.trim().toLocaleLowerCase();
+ shown=q?all.filter(o=>[field(o,"id"),field(o,"name"),field(o,"description"),field(o,"link")].join(" ").toLocaleLowerCase().includes(q)):all.slice();
+ page=1;render();
+}
+input.addEventListener("input",searchNow);
+fetch(DATA_URL,{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(d=>{all=records(d);shown=all.slice();render()}).catch(e=>{console.error(e);count.textContent="0 results";list.innerHTML='<div class="archive-empty">Could not load history.json.</div>';});
+})();
+</script>
+</body>
+</html>
