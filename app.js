@@ -538,8 +538,10 @@ async function selectExplorerEntity(qid,name){
  const period=(start!=null||finish!=null)?(start!=null&&finish!=null?formatYear(start)+" — "+formatYear(finish):start!=null?formatYear(start)+" — Present":"Until "+formatYear(finish)):"Period not recorded";
  ins.innerHTML='<h3>'+esc(name)+'</h3><p>'+esc(entity?.descriptions?.en?.value||"No English description available.")+'</p><div class="history-facts"><div class="history-fact"><span>Mode</span><strong>'+esc(explorerMode)+'</strong></div><div class="history-fact"><span>Selected date</span><strong>'+esc(formatYear(explorerYear))+'</strong></div><div class="history-fact"><span>Entity period</span><strong>'+esc(period)+'</strong></div><div class="history-fact"><span>Mapped locations</span><strong>'+esc(String(locations.length))+'</strong></div></div><div class="history-sources"><a href="https://www.wikidata.org/wiki/'+encodeURIComponent(resolvedQid||qid)+'" target="_blank" rel="noopener">Open Wikidata source ↗</a></div>';
 }
-function initExplorer(){
+async function initExplorer(){
  const root=document.querySelector("#history-explorer");if(!root)return;
+ if(window.__historyMapReady){try{await window.__historyMapReady}catch(_){}}
+
  document.querySelectorAll(".explorer-tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".explorer-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");explorerMode=b.dataset.mode;renderExplorer()}));
  const slider=document.querySelector("#history-slider"),year=document.querySelector("#history-year"),cur=document.querySelector("#history-current");
  let explorerTimer=null; slider?.addEventListener("input",()=>{year.value=slider.value;cur.textContent=slider.value;clearTimeout(explorerTimer);explorerTimer=setTimeout(renderExplorer,220)});
@@ -549,7 +551,7 @@ function initExplorer(){
  renderExplorer();
 }
 function initWorldMap(){
- if(!mapEl||typeof L==="undefined")return;
+ if(leafletMap||!mapEl||typeof L==="undefined")return;
  leafletMap=L.map("world-map",{worldCopyJump:true,zoomControl:false,minZoom:1,maxZoom:10,preferCanvas:true,zoomSnap:.25,zoomDelta:.5}).setView([20,0],2);
  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(leafletMap);
  fetch("world.geojson",{cache:"force-cache"}).then(async res=>{if(!res.ok)throw Error("world.geojson "+res.status);return res.json()}).then(geo=>{
