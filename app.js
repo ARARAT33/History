@@ -424,8 +424,24 @@ let explorerMode="states", explorerYear=2026;
 const EXPLORER_TYPES={states:"Q6256",peoples:"Q41710",languages:"Q315",animals:"Q729"};
 function explorerYearBounds(y){return {start:String(y)+"-01-01T00:00:00Z",end:String(y)+"-12-31T23:59:59Z"}}
 async function explorerSearch(mode,term){
- const type=EXPLORER_TYPES[mode]; if(!type)return [];
- const q='SELECT ?item ?itemLabel ?coord ?geo ?image ?inception ?extinction WHERE { ?item wdt:P31/wdt:P279* wd:'+type+'. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P3896 ?geo.} OPTIONAL{?item wdt:P18 ?image.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} '+(term?'FILTER(CONTAINS(LCASE(STR(?itemLabel)),LCASE("'+String(term).replaceAll('"','\\\"')+'")))':'')+' SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 80';
+ const clean=String(term||"").trim();
+ if(clean){
+   const ids=await searchQids(clean,"en");
+   const ents=await getEntities(ids,["en"]);
+   const valid=ids.map(id=>ents[id]).filter(Boolean).filter(ent=>{
+     const types=prop(ent.claims,"P31").map(claimId);
+     if(mode==="states")return types.includes("Q6256")||types.includes("Q3624078")||prop(ent.claims,"P297").length;
+     if(mode==="languages")return types.includes("Q315")||types.includes("Q34770")||types.includes("Q20162172");
+     if(mode==="animals")return types.includes("Q16521")||types.includes("Q729")||types.includes("Q55983715");
+     return types.includes("Q41710")||types.includes("Q16334295")||types.includes("Q16881915");
+   });
+   return valid.slice(0,40).map(ent=>({item:{value:"http://www.wikidata.org/entity/"+ent.id},itemLabel:{value:ent.labels?.en?.value||ent.id},coord:prop(ent.claims,"P625")[0]?.mainsnak?.datavalue?.value?.latitude!=null?{value:"Point("+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.longitude+" "+prop(ent.claims,"P625")[0].mainsnak.datavalue.value.latitude+")"}:null,inception:prop(ent.claims,"P571")[0]?.mainsnak?.datavalue?.value,extinction:prop(ent.claims,"P576")[0]?.mainsnak?.datavalue?.value,geo:null}));
+ }
+ let q="";
+ if(mode==="states")q='SELECT ?item ?itemLabel ?coord ?geo ?inception ?extinction WHERE {?item wdt:P297 ?iso. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P3896 ?geo.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 80';
+ else if(mode==="languages")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q315. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 60';
+ else if(mode==="animals")q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q16521. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 60';
+ else q='SELECT ?item ?itemLabel ?coord ?inception ?extinction WHERE {?item wdt:P31/wdt:P279* wd:Q41710. OPTIONAL{?item wdt:P625 ?coord.} OPTIONAL{?item wdt:P571 ?inception.} OPTIONAL{?item wdt:P576 ?extinction.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 60';
  return sparql(q).then(rows=>rows.filter(r=>{const s=yearOf(r.inception?.value),e=yearOf(r.extinction?.value);return !s||s<=explorerYear?(!e||e>=explorerYear):false})).catch(()=>[]);
 }
 function clearExplorerLayers(){if(window.__explorerGroup){window.__explorerGroup.clearLayers();window.__explorerGroup.remove();window.__explorerGroup=null}}
@@ -452,9 +468,9 @@ async function renderExplorer(){
 }
 async function explorerLocations(qid,mode,year){
  let q="";
- if(mode==="peoples") q='SELECT ?country ?countryLabel ?iso ?start ?end WHERE {?country wdt:P297 ?iso. ?country p:P172 ?st. ?st ps:P172 wd:'+qid+'. OPTIONAL{?st pq:P580 ?start.} OPTIONAL{?st pq:P582 ?end.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
- else if(mode==="languages") q='SELECT ?country ?countryLabel ?iso ?start ?end WHERE {?country wdt:P297 ?iso. {?country p:P37 ?st.} UNION {?country p:P2936 ?st.} ?st ?pred wd:'+qid+'. OPTIONAL{?st pq:P580 ?start.} OPTIONAL{?st pq:P582 ?end.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
- else if(mode==="animals") q='SELECT ?range ?rangeLabel ?iso WHERE { wd:'+qid+' wdt:P9714 ?range. ?range wdt:P297 ?iso. SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
+ if(mode==="peoples")q='SELECT ?country ?countryLabel ?iso ?start ?end WHERE {?country wdt:P297 ?iso. ?country p:P172 ?st. ?st ps:P172 wd:'+qid+'. OPTIONAL{?st pq:P580 ?start.} OPTIONAL{?st pq:P582 ?end.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
+ else if(mode==="languages")q='SELECT ?country ?countryLabel ?iso ?start ?end WHERE {{?country p:P37 ?st. ?st ps:P37 wd:'+qid+'.} UNION {?country p:P2936 ?st. ?st ps:P2936 wd:'+qid+'.} ?country wdt:P297 ?iso. OPTIONAL{?st pq:P580 ?start.} OPTIONAL{?st pq:P582 ?end.} SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
+ else if(mode==="animals")q='SELECT ?country ?countryLabel ?iso WHERE {wd:'+qid+' wdt:P9714 ?country. ?country wdt:P297 ?iso. SERVICE wikibase:label{bd:serviceParam wikibase:language "en".}} LIMIT 250';
  else return [];
  const rows=await sparql(q).catch(()=>[]);
  return rows.filter(r=>{const s=yearOf(r.start?.value),e=yearOf(r.end?.value);return !s||!e||(year>=s&&year<=e)});
