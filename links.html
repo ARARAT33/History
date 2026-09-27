@@ -17,20 +17,27 @@
 <section id="history-db-content" class="history-db-grid"><div class="history-empty">Loading history…</div></section><div id="history-pages" class="history-pages"></div>
 </main>
 <script>
-(()=>{const URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json",PAGE=50;
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));const first=(o,k)=>{for(const x of k)if(o?.[x]!=null&&String(o[x]).trim())return o[x];return""};
-const arr=x=>Array.isArray(x)?x:["items","records","history","pages","archive","data","results"].flatMap(k=>Array.isArray(x?.[k])?x[k]:[]);
-const parseMdLink=v=>{let s=String(v??"").trim();if(s.startsWith("[")&&s.endsWith(")")){const mid=s.indexOf("](");if(mid>0&&s.endsWith(")")){const label=s.slice(1,mid),url=s.slice(mid+2,-1);if(/^https?:\\/\\//i.test(url))return{label,url}}}return null};
-const normalizeUrl=v=>{const m=parseMdLink(v);return m?m.url:String(v??"").trim()};
-const linkLabel=v=>{const m=parseMdLink(v);return m?m.label:String(v??"").trim()};
-const yt=u=>{try{let x=new URL(normalizeUrl(u)),id=x.hostname.includes("youtu.be")?x.pathname.slice(1):x.searchParams.get("v");return id?"https://www.youtube.com/embed/"+encodeURIComponent(id):""}catch{return""}};
-const preview=u=>{if(!/^https?:\/\//i.test(String(u||"")))return"";u=normalizeUrl(u);let l=u.toLowerCase(),y=yt(u);if(y)return '<div class="history-preview"><iframe src="'+esc(y)+'" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';if(/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(l))return '<div class="history-preview"><video controls playsinline src="'+esc(u)+'"></video></div>';if(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(l))return '<div class="history-preview"><img src="'+esc(u)+'" alt=""></div>';return '<div class="history-preview"><iframe class="is-website" src="'+esc(u)+'" title="Website preview" loading="lazy" allowfullscreen></iframe></div>'};
-let all=[],filtered=[],page=1;const root=document.getElementById("history-db-content"),search=document.getElementById("history-search"),count=document.getElementById("history-count"),pages=document.getElementById("history-pages");
-function card(o,i){const id=first(o,["id","ID","uuid","identifier"])||"record-"+(i+1),name=first(o,["name","title","label","pageName","page_name","slug"])||"Untitled",d=first(o,["description","desc","summary","text"])||"",rawLink=first(o,["link","url","href","source"])||"",u=normalizeUrl(rawLink);
-const fields=Object.entries(o).filter(([k,v])=>v!=null&&v!==""&&![ "id","ID","uuid","identifier","name","title","label","pageName","page_name","slug","description","desc","summary","text","link","url","href","source"].includes(k)).map(([k,v])=>"<div><b>"+esc(k)+":</b> "+esc(typeof v==="object"?JSON.stringify(v):v)+"</div>").join("");
-const linkField=rawLink?'<div><b>Link:</b> <a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(linkLabel(rawLink))+'</a></div>':"";
-return '<article class="history-db-card"><div class="history-db-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3><p>'+esc(d||"No description provided.")+'</p>'+(linkField?'<div class="history-db-extra">'+linkField+"</div>":"")+preview(u)+(u?'<div class="history-actions"><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">Open website ↗</a></div>':"")+(fields?'<div class="history-db-extra">'+fields+"</div>":"")+"</article>"}
-function render(){let start=(page-1)*PAGE,rows=filtered.slice(start,start+PAGE);root.innerHTML=rows.length?rows.map(card).join(""):'<div class="history-empty">No matching records.</div>';count.textContent=filtered.length+" results";let n=Math.max(1,Math.ceil(filtered.length/PAGE));pages.innerHTML='<button '+(page<=1?"disabled":"")+' data-p="-1">← Previous</button><span>Page '+page+" / "+n+'</span><button '+(page>=n?"disabled":"")+' data-p="1">Next →</button>';pages.querySelectorAll("button").forEach(b=>b.onclick=()=>{page+=Number(b.dataset.p);render();scrollTo({top:0,behavior:"smooth"})})}
-search.oninput=()=>{let q=search.value.trim().toLowerCase();filtered=all.filter(o=>JSON.stringify(o).toLowerCase().includes(q));page=1;render()};
-fetch(URL,{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(d=>{all=arr(d).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(()=>root.innerHTML='<div class="history-empty">History data could not be loaded right now.</div>')})();
+(()=>{"use strict";
+const DATA_URL="https://raw.githubusercontent.com/ARARAT33/AWEArchiveDB/refs/heads/main/pagehistory.json",PAGE_SIZE=50;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const first=(o,keys)=>{for(const k of keys)if(o&&o[k]!=null&&String(o[k]).trim())return o[k];return""};
+const rowsOf=d=>Array.isArray(d)?d:["items","records","history","pages","archive","data","results"].flatMap(k=>Array.isArray(d?.[k])?d[k]:[]);
+const safeUrl=v=>{try{const u=new URL(String(v??"").trim());return /^https?:$/.test(u.protocol)?u.href:""}catch{return""}};
+let all=[],filtered=[],page=1;
+const root=document.getElementById("history-db-content"),search=document.getElementById("history-search"),count=document.getElementById("history-count"),pages=document.getElementById("history-pages");
+function card(o,i){
+ const id=first(o,["id","ID","uuid","identifier"])||"record-"+(i+1),name=first(o,["name","title","label","pageName","page_name","slug"])||"Untitled",desc=first(o,["description","desc","summary","text"])||"No description provided.",url=safeUrl(first(o,["link","url","href","source"]));
+ const preview=url?'<div class="history-preview"><iframe src="'+esc(url)+'" title="Preview of '+esc(name)+'" loading="lazy" referrerpolicy="no-referrer" allow="fullscreen"></iframe><div class="history-preview-note">Եթե աղբյուրը արգելում է iframe-ը, օգտագործիր «Open link»։</div></div>':"";
+ return '<article class="history-db-card"><div class="history-db-id">ID · '+esc(id)+'</div><h3>'+esc(name)+'</h3><p>'+esc(desc)+'</p>'+(url?'<div class="history-link"><b>Link:</b> <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a></div>':"<div class="history-link"><b>Link:</b> not available</div>")+preview+(url?'<div class="history-actions"><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Open link ↗</a></div>':"")+"</article>";
+}
+function render(){
+ const total=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE)),rows=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+ root.innerHTML=rows.length?rows.map(card).join(""):'<div class="history-empty">No matching links.</div>';
+ count.textContent=filtered.length+" results";
+ pages.innerHTML='<button type="button" '+(page<=1?"disabled":"")+' data-step="-1">← Previous</button><span>Page '+page+" / "+total+'</span><button type="button" '+(page>=total?"disabled":"")+' data-step="1">Next →</button>';
+ pages.querySelectorAll("button").forEach(b=>b.onclick=()=>{page+=Number(b.dataset.step);render();scrollTo({top:0,behavior:"smooth"})});
+}
+search.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();filtered=all.filter(o=>JSON.stringify(o).toLowerCase().includes(q));page=1;render()});
+fetch(DATA_URL,{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(d=>{all=rowsOf(d).filter(x=>x&&typeof x==="object");filtered=all;render()}).catch(e=>{console.error(e);root.innerHTML='<div class="history-empty">Links data could not be loaded right now.</div>'});
+})();
 </script><script src="site-tools.js?v=20260927-7"></script></body></html>
